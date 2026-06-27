@@ -6,10 +6,12 @@ st.set_page_config(page_title="SK하이닉스 AI 에이전트", page_icon="🤖"
 st.title("🤖 반도체 데이터 분석 마스터봇")
 st.write("SK하이닉스 신입사원을 위한 데이터 분석 및 코딩 조수입니다.")
 
-# 1. 사이드바에서 API 키 입력받기 (보안용)
-with st.sidebar:
-    st.header("설정")
-    api_key = st.text_input("발급받은 Gemini API Key를 입력하세요", type="password")
+# 1. Streamlit Secrets에서 API 키를 안전하게 불러오기 (사이드바 입력 삭제)
+api_key = st.secrets["GEMINI_API_KEY"]
+genai.configure(api_key=api_key)
+
+# 에러를 해결했던 최신 모델(3.5-flash) 적용
+model = genai.GenerativeModel('gemini-3.5-flash')
 
 # 2. 대화 기록을 저장하기 위한 설정
 if "messages" not in st.session_state:
@@ -29,19 +31,12 @@ if user_input:
         st.write(user_input)
     st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # API 키가 입력되지 않았을 때의 경고
-    if not api_key:
-        st.warning("👈 왼쪽 사이드바에 Gemini API 키를 먼저 입력해주세요!")
-    else:
-        # 5. Gemini AI 두뇌 연결 및 답변 생성
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-3.5-flash')
+    # 5. Gemini AI 두뇌를 통한 답변 생성
+    with st.chat_message("assistant"):
+        # 시스템 프롬프트(페르소나)를 주입하여 답변 요청
+        prompt = f"너는 SK하이닉스의 친절한 데이터 분석 선배야. 다음 질문에 다정하고 전문적으로 답해줘: {user_input}"
+        response = model.generate_content(prompt)
+        st.write(response.text)
         
-        with st.chat_message("assistant"):
-            # 시스템 프롬프트(페르소나)를 주입하여 답변 요청
-            prompt = f"너는 SK하이닉스의 친절한 데이터 분석 선배야. 다음 질문에 다정하고 전문적으로 답해줘: {user_input}"
-            response = model.generate_content(prompt)
-            st.write(response.text)
-            
-        # AI의 답변을 기록에 저장
-        st.session_state.messages.append({"role": "assistant", "content": response.text})
+    # AI의 답변을 기록에 저장
+    st.session_state.messages.append({"role": "assistant", "content": response.text})
