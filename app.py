@@ -143,9 +143,19 @@ else:
             st.bar_chart(chart_data)
             st.warning("📌 복습 키워드: Pandas 결측치 처리, 반도체 8대 공정")
             
+            # ✨ 추가된 기능: 영단어 & 퀴즈 퀵 버튼
+            st.markdown("---")
+            st.subheader("💡 오늘의 스마트 학습")
+            btn_col1, btn_col2 = st.columns(2)
+            with btn_col1:
+                if st.button("📖 직무 영단어 3개 보기"):
+                    st.session_state.quick_action = "글로벌 비즈니스 및 반도체 실무에 자주 쓰이는 필수 영단어 3개를 뜻과 예문과 함께 알려줘."
+            with btn_col2:
+                if st.button("📝 반도체/코딩 퀴즈 풀기"):
+                    st.session_state.quick_action = "내가 복습할 수 있도록 파이썬(Pandas)이나 반도체 관련 객관식 퀴즈를 1개 내줘."
+            
         elif mode == "💰 소비 습관 코치":
             st.write("카테고리별 지출 현황")
-            # 간단한 차트로 예산 시각화
             chart_data = pd.DataFrame({"지출 금액": [400000, 250000, 150000, 100000]}, index=["식비", "교통비", "쇼핑", "기타"])
             st.bar_chart(chart_data)
             st.success("💡 AI 분석: 이번 주는 배달 음식 지출이 줄어 절약 포인트 50점을 획득하셨습니다!")
@@ -157,34 +167,47 @@ else:
             
         elif mode == "📰 반도체 기술 뉴스":
             st.write("이번 주 핵심 반도체 트렌드 키워드")
-            # 워드클라우드 대신 카드로 주요 이슈 나열
             st.info("**1. HBM(고대역폭 메모리) 수요 폭발**\n\nAI 서버 수요 증가로 인해 SK하이닉스의 HBM 시장 점유율이 돋보이고 있습니다.")
             st.warning("**2. 차세대 미세 공정 경쟁 심화**\n\n수율(Yield) 안정화와 양산기술의 중요성이 그 어느 때보다 대두되고 있습니다.")
 
     # ------------------------------------------------------------------
-    # [오른쪽 영역] AI 에이전트 채팅
+    # [오른쪽 영역] AI 에이전트 채팅 (환영 메시지 기능 추가)
     # ------------------------------------------------------------------
     with col_chat:
         st.subheader("💬 AI 코치 1:1 상담")
         
-        # 기능별 페르소나 (시스템 프롬프트)
-        personas = {
-            "🎯 목표 달성 코치": "너는 목표를 세분화하고 일정 관리를 돕는 전략적 코치야. 안태경님의 목표를 작고 구체적인 할 일로 분해해 줘.",
-            "📚 학습 코치": "너는 체계적인 학습 전문가야. 공부 계획을 생성하고, 효율적인 복습 타이밍을 추천하며, 관련 퀴즈를 만들어 줘.",
-            "💰 소비 습관 코치": "너는 재무 상담가야. 소비 패턴을 분석하고, 예산 관리 및 절약을 위한 따끔하면서도 따뜻한 피드백을 제공해 줘.",
-            "🏃‍♂️ 운동 코치": "너는 건강 및 운동 전문가야. 사용자의 수준에 맞는 운동 루틴을 추천하고, 기록을 분석하여 점진적 목표를 제시해 줘.",
-            "📰 반도체 기술 뉴스": "너는 반도체 산업 분석가야. 최신 반도체 기술 이슈를 데이터 기반으로 요약하고 양산기술 직무와 엮어 트렌드를 알려 줘."
+        # 기능별 페르소나 및 환영 메시지 세팅
+        agent_setup = {
+            "🎯 목표 달성 코치": {
+                "persona": "너는 목표를 세분화하고 일정 관리를 돕는 전략적 코치야. 안태경님의 목표를 작고 구체적인 할 일로 분해해 줘.",
+                "greeting": "안녕하세요, 안태경 님! 🚀 이번 주 목표를 달성하기 위해 어떤 프로젝트를 준비 중이신가요? 막막한 일이 있다면 제가 작게 쪼개어 드릴게요!"
+            },
+            "📚 학습 코치": {
+                "persona": "너는 체계적인 학습 전문가야. 반도체 관련 영단어와 파이썬 퀴즈를 내주고 피드백을 제공해 줘.",
+                "greeting": "학습 코치입니다! 📚 오늘 공부할 파이썬 문법이나 반도체 공정 개념이 있나요? 영단어 공부나 복습 퀴즈가 필요하다면 왼쪽 버튼을 누르거나 편하게 말씀해 주세요!"
+            },
+            "💰 소비 습관 코치": {
+                "persona": "너는 재무 상담가야. 소비 패턴을 분석하고, 예산 관리 및 절약을 위한 따끔하면서도 따뜻한 피드백을 제공해 줘.",
+                "greeting": "이번 달 꼼꼼한 예산 관리를 도와드릴 재무 조수입니다. 💸 최근 지출 중 가장 아깝거나 잘 샀다고 생각하는 항목은 무엇인가요?"
+            },
+            "🏃‍♂️ 운동 코치": {
+                "persona": "너는 건강 및 운동 전문가야. 사용자의 수준에 맞는 운동 루틴을 추천하고, 기록을 분석하여 점진적 목표를 제시해 줘.",
+                "greeting": "오늘도 활기찬 하루! 🏃‍♂️ 오늘 예정된 운동 부위나 현재 컨디션을 알려주시면, 딱 맞는 운동 루틴을 추천해 드릴게요."
+            },
+            "📰 반도체 기술 뉴스": {
+                "persona": "너는 반도체 산업 분석가야. 최신 반도체 기술 이슈를 데이터 기반으로 요약하고 양산기술 직무와 엮어 트렌드를 알려 줘.",
+                "greeting": "최신 반도체 트렌드를 배달해 드립니다. 📰 오늘 화면 왼쪽에 뜬 뉴스 중 특별히 더 깊게 알아보고 싶은 이슈나 키워드가 있나요?"
+            }
         }
         
-        # 선택된 모드의 프롬프트 가져오기
-        system_prompt = personas.get(mode, "")
+        system_prompt = agent_setup[mode]["persona"]
+        greeting_msg = agent_setup[mode]["greeting"]
 
-        # 채팅 기록 관리 (모드가 변경되면 채팅 초기화)
+        # 💡 모드가 변경되면 채팅 기록을 초기화하고 환영 메시지를 첫 대화로 삽입!
         if "current_mode" not in st.session_state or st.session_state.current_mode != mode:
-            st.session_state.messages = []
+            st.session_state.messages = [{"role": "assistant", "content": greeting_msg}]
             st.session_state.current_mode = mode
 
-        # 컨테이너를 사용하여 채팅창 높이 조절
         chat_container = st.container(height=400)
         
         with chat_container:
@@ -192,15 +215,22 @@ else:
                 with st.chat_message(msg["role"]):
                     st.write(msg["content"])
 
+        # 💡 버튼 클릭(quick_action)이 발생했거나, 사용자가 텍스트를 입력했거나 판별
+        user_input = None
+        if "quick_action" in st.session_state:
+            user_input = st.session_state.quick_action
+            del st.session_state.quick_action # 실행 후 삭제
+        else:
+            user_input = st.chat_input(f"{mode}에게 질문하기...")
+
         # 질문 입력 및 응답 로직
-        if user_input := st.chat_input(f"{mode}에게 질문하기..."):
+        if user_input:
             with chat_container:
                 with st.chat_message("user"):
                     st.write(user_input)
                 st.session_state.messages.append({"role": "user", "content": user_input})
                 
                 with st.chat_message("assistant"):
-                    # 페르소나와 현재 컨디션을 포함하여 질문 전달
                     prompt = f"{system_prompt}\n(참고로 현재 사용자의 기분은 '{condition}' 상태야.)\n\n사용자 질문: {user_input}"
                     response = model.generate_content(prompt)
                     st.write(response.text)
