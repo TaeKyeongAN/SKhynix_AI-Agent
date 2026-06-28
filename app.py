@@ -74,14 +74,25 @@ with st.sidebar:
 # 5. 메인 화면 로직 (우측 채팅창 고정 CSS 적용)
 # ----------------------------------------------------------------------
 # 💡 [핵심] 우측 컬럼(채팅창)이 스크롤을 따라오도록 고정하는 CSS 마법
+# 💡 채팅창을 화면 우측에 완전히 고정(Fixed)시키는 강력한 CSS
 st.markdown("""
     <style>
-    /* 두 번째 컬럼(우측 채팅창)을 화면에 고정(Sticky) */
+    /* 우측 채팅창 고정 */
     [data-testid="column"]:nth-of-type(2) {
-        position: sticky;
-        top: 3.5rem; /* 상단에서 약간의 여백을 둠 */
-        height: calc(100vh - 4rem); /* 브라우저 화면 높이에 맞춤 */
-        overflow-y: auto; /* 내부 스크롤 생성 */
+        position: fixed !important;
+        right: 2rem;
+        top: 5rem;
+        width: 35% !important; /* 채팅창 너비 조정 */
+        height: 80vh !important;
+        z-index: 1000;
+        background-color: white;
+        padding: 10px;
+        border-left: 1px solid #ddd;
+    }
+    /* 메인 대시보드(왼쪽)가 채팅창에 가려지지 않도록 여백 확보 */
+    [data-testid="column"]:nth-of-type(1) {
+        width: 60% !important;
+        padding-right: 40% !important; 
     }
     </style>
 """, unsafe_allow_html=True)
