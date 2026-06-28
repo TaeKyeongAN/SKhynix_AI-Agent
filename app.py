@@ -200,8 +200,24 @@ with col_chat:
         st.session_state.messages = [{"role": "assistant", "content": greeting}]
         st.session_state.current_mode = mode
 
+    # 채팅 메시지 출력
     chat_container = st.container(height=550)
     with chat_container:
         for msg in st.session_state.messages:
             with st.chat_message(msg["role"]):
                 st.write(msg["content"])
+
+    # 채팅 입력창 (누락되었던 부분)
+    user_input = st.chat_input("AI 코치에게 질문하기...")
+    
+    if user_input:
+        with chat_container:
+            with st.chat_message("user"):
+                st.write(user_input)
+            st.session_state.messages.append({"role": "user", "content": user_input})
+            
+            with st.chat_message("assistant"):
+                prompt = f"{sys_prompt}\n\n사용자 질문: {user_input}"
+                response = model.generate_content(prompt)
+                st.write(response.text)
+            st.session_state.messages.append({"role": "assistant", "content": response.text})
