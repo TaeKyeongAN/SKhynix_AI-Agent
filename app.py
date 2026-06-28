@@ -98,23 +98,33 @@ with col_visual:
             st.markdown("#### 📉 통계 분석")
             period = st.selectbox("기간 단위", ["요일별", "월별"], key="stat_period")
             
-            # 요일/월 텍스트 처리
-            options = ["월", "화", "수", "목", "금", "토", "일"] if period == "요일별" else [f"{i}월" for i in range(1, 13)]
-            val = st.selectbox("항목 선택", options, key="stat_val")
-            
-            # 데이터 로직
+            # 요일/월별 옵션 구성 (선택 시 '월요일' 처럼 보이도록 수정)
             if period == "요일별":
-                base_data = {"월": [7, 10, 2, 5], "금": [7, 9, 1, 7], "토": [8, 2, 6, 8], "일": [9, 1, 6, 8]}
-                data_values = base_data.get(val, [7, 8, 4, 5])
+                options_display = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
+                val = st.selectbox("항목 선택", options_display, key="stat_val")
+                display_title = f"{val} 데이터"
+                
+                # 요일별 특성 데이터 매핑 (한글 텍스트에서 한 글자만 추출하여 로직 처리)
+                day_key = val[0] 
+                base_data = {
+                    "월": [7, 10, 2, 5], "화": [7, 9, 2, 6], "수": [7, 9, 2, 6], 
+                    "목": [7, 9, 2, 6], "금": [7, 8, 2, 7], "토": [8, 2, 6, 8], "일": [9, 1, 6, 8]
+                }
+                data_values = base_data.get(day_key, [7, 8, 2, 7])
             else:
+                options_display = [f"{i}월" for i in range(1, 13)]
+                val = st.selectbox("항목 선택", options_display, key="stat_val")
+                display_title = f"{val} 데이터"
+                
+                # 월별 특성 데이터
                 month_num = int(val.replace("월", ""))
-                if month_num in [6, 7, 8]: data_values = [7, 7, 3, 7]
-                elif month_num == 12: data_values = [6, 11, 4, 3]
-                else: data_values = [7, 9, 2, 6]
+                if month_num in [6, 7, 8]: data_values = [7, 7, 3, 7] # 여름
+                elif month_num == 12: data_values = [6, 11, 4, 3]    # 연말
+                else: data_values = [7, 9, 2, 6]                     # 평시
             
             df_stat = pd.DataFrame({'활동': ['수면', '업무', '자기계발', '휴식'], '시간': data_values})
             fig_stat = px.pie(df_stat, values='시간', names='활동', 
-                              title=f"{val} 데이터",
+                              title=f"{display_title}",
                               color='활동', color_discrete_map=color_map)
             fig_stat.update_layout(height=350, margin=dict(t=50, b=0, l=0, r=0))
             st.plotly_chart(fig_stat, use_container_width=True)
