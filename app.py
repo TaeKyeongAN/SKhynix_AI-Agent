@@ -189,21 +189,21 @@ with col_chat:
             with st.chat_message(msg["role"]):
                 st.write(msg["content"])
 
-    # # 뽀모도로 완료 버튼을 눌렀을 때 자동 채팅 트리거
-    # user_input = st.chat_input("AI 코치에게 질문하기...")
+    # 뽀모도로 완료 버튼을 눌렀을 때 자동 채팅 트리거
+    user_input = st.chat_input("AI 코치에게 질문하기...")
     
-    # if getattr(st.session_state, 'pomodoro_done', False):
-    #     user_input = "나 방금 뽀모도로 25분 집중 완료했어! 성취도 리포트랑 다정한 칭찬 멘트, 그리고 다음 스텝 추천해 줘."
-    #     st.session_state.pomodoro_done = False # 한 번 실행 후 초기화
+    if getattr(st.session_state, 'pomodoro_done', False):
+        user_input = "나 방금 뽀모도로 25분 집중 완료했어! 성취도 리포트랑 다정한 칭찬 멘트, 그리고 다음 스텝 추천해 줘."
+        st.session_state.pomodoro_done = False # 한 번 실행 후 초기화
 
-    # if user_input:
-    #     with chat_container:
-    #         with st.chat_message("user"):
-    #             st.write(user_input)
-    #         st.session_state.messages.append({"role": "user", "content": user_input})
+    if user_input:
+        with chat_container:
+            with st.chat_message("user"):
+                st.write(user_input)
+            st.session_state.messages.append({"role": "user", "content": user_input})
             
-    #         with st.chat_message("assistant"):
-    #             prompt = f"{sys_prompt}\n\n사용자 질문: {user_input}"
-    #             response = model.generate_content(prompt)
-    #             st.write(response.text)
-    #         st.session_state.messages.append({"role": "assistant", "content": response.text})
+            with st.chat_message("assistant"):
+                prompt = f"{sys_prompt}\n\n사용자 질문: {user_input}"
+                response = model.generate_content(prompt)
+                st.write(response.text)
+            st.session_state.messages.append({"role": "assistant", "content": response.text})
