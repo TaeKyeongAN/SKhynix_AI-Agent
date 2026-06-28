@@ -130,6 +130,23 @@ with col_visual:
         
         st.markdown("---")
 
+        # 2. 감정-컨디션 상관관계 분석기 (Plotly 사용)
+        st.subheader("🧠 감정-성취도 상관관계 분석")
+        st.write(f"오늘 안태경 님의 컨디션은 **'{condition}'** 입니다.")
+        
+        dates = pd.date_range(end=today, periods=14)
+        condition_scores = np.random.randint(1, 4, size=14)
+        achievement = condition_scores * 25 + np.random.randint(-10, 10, size=14) 
+        
+        df_insight = pd.DataFrame({
+            "날짜": dates,
+            "컨디션": condition_scores * 30,
+            "성취도": achievement
+        })
+        st.line_chart(df_insight.set_index("날짜"))
+        
+        st.markdown("---")
+
     # ---------------------------------------------------
     # 탭 2: 스마트 재무 관리
     # ---------------------------------------------------
@@ -189,21 +206,21 @@ with col_chat:
             with st.chat_message(msg["role"]):
                 st.write(msg["content"])
 
-    # 뽀모도로 완료 버튼을 눌렀을 때 자동 채팅 트리거
-    user_input = st.chat_input("AI 코치에게 질문하기...")
+    # # 뽀모도로 완료 버튼을 눌렀을 때 자동 채팅 트리거
+    # user_input = st.chat_input("AI 코치에게 질문하기...")
     
-    if getattr(st.session_state, 'pomodoro_done', False):
-        user_input = "나 방금 뽀모도로 25분 집중 완료했어! 성취도 리포트랑 다정한 칭찬 멘트, 그리고 다음 스텝 추천해 줘."
-        st.session_state.pomodoro_done = False # 한 번 실행 후 초기화
+    # if getattr(st.session_state, 'pomodoro_done', False):
+    #     user_input = "나 방금 뽀모도로 25분 집중 완료했어! 성취도 리포트랑 다정한 칭찬 멘트, 그리고 다음 스텝 추천해 줘."
+    #     st.session_state.pomodoro_done = False # 한 번 실행 후 초기화
 
-    if user_input:
-        with chat_container:
-            with st.chat_message("user"):
-                st.write(user_input)
-            st.session_state.messages.append({"role": "user", "content": user_input})
+    # if user_input:
+    #     with chat_container:
+    #         with st.chat_message("user"):
+    #             st.write(user_input)
+    #         st.session_state.messages.append({"role": "user", "content": user_input})
             
-            with st.chat_message("assistant"):
-                prompt = f"{sys_prompt}\n\n사용자 질문: {user_input}"
-                response = model.generate_content(prompt)
-                st.write(response.text)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
+    #         with st.chat_message("assistant"):
+    #             prompt = f"{sys_prompt}\n\n사용자 질문: {user_input}"
+    #             response = model.generate_content(prompt)
+    #             st.write(response.text)
+    #         st.session_state.messages.append({"role": "assistant", "content": response.text})
