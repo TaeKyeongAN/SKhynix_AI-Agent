@@ -83,12 +83,12 @@ col_visual, col_chat = st.columns([6, 4])
 # ==========================================
 with col_visual:
     # ---------------------------------------------------
-    # 탭 1: 갓생 루틴 메이커 (레이아웃 최종 수정본)
+    # 탭 1: 갓생 루틴 메이커 (레이아웃 높이 최종 정렬)
     # ---------------------------------------------------
     if mode == "⏱️ 갓생(God-생) 루틴 메이커":
         st.subheader("📊 24시간 타임블록 설계")
         
-        # 1. 차트 레이아웃 (좌우 2열 배치)
+        # 1. 차트 영역 (좌우 2열 배치)
         col_left, col_right = st.columns(2)
         
         # [왼쪽: 통계 분석]
@@ -102,58 +102,32 @@ with col_visual:
             fig_stat.update_layout(height=350, margin=dict(t=50, b=0, l=0, r=0))
             st.plotly_chart(fig_stat, use_container_width=True)
 
-        # [오른쪽: 오늘의 계획 (설정 포함)]
+        # [오른쪽: 오늘의 계획]
         with col_right:
             st.markdown("#### 📅 오늘의 계획")
             
-            # 시간 설정 슬라이더를 차트 바로 위로 이동
+            # 슬라이더 영역 (오른쪽 차트 바로 위)
             c1, c2, c3 = st.columns(3)
-            with c1: sleep_h = st.slider("수면", 0.0, 24.0, 7.0, 0.5, key="s_h")
-            with c2: work_h = st.slider("업무", 0.0, 24.0, 9.0, 0.5, key="w_h")
-            with c3: study_h = st.slider("자기계발", 0.0, 24.0, 2.0, 0.5, key="st_h")
+            with c1: sleep_h = st.slider("수면", 0.0, 24.0, 7.0, 0.5)
+            with c2: work_h = st.slider("업무", 0.0, 24.0, 9.0, 0.5)
+            with c3: study_h = st.slider("자기계발", 0.0, 24.0, 2.0, 0.5)
             rest_h = 24.0 - (sleep_h + work_h + study_h)
+            
+            # 왼쪽의 셀렉트박스 2개(약 120px) 높이만큼 여백 확보
+            st.write("") 
+            st.write("")
+            st.write("")
+            st.write("")
             
             if rest_h < 0:
                 st.error("시간 합계 초과!")
             else:
-                df_today = pd.DataFrame({
-                    '활동': ['수면', '업무', '자기계발', '휴식'],
-                    '시간': [sleep_h, work_h, study_h, rest_h]
-                })
+                df_today = pd.DataFrame({'활동': ['수면', '업무', '자기계발', '휴식'], '시간': [sleep_h, work_h, study_h, rest_h]})
                 fig_today = px.pie(df_today, values='시간', names='활동', title="현재 타임블록")
                 fig_today.update_layout(height=350, margin=dict(t=50, b=0, l=0, r=0))
                 st.plotly_chart(fig_today, use_container_width=True)
         
         st.markdown("---")
-        
-        # 2. 감정-컨디션 상관관계 분석기 (Plotly 사용)
-        st.subheader("🧠 감정-성취도 상관관계 분석")
-        st.write(f"오늘 안태경 님의 컨디션은 **'{condition}'** 입니다.")
-        
-        dates = pd.date_range(end=today, periods=14)
-        condition_scores = np.random.randint(1, 4, size=14)
-        achievement = condition_scores * 25 + np.random.randint(-10, 10, size=14) 
-        
-        df_insight = pd.DataFrame({
-            "날짜": dates,
-            "컨디션": condition_scores * 30,
-            "성취도": achievement
-        })
-        st.line_chart(df_insight.set_index("날짜"))
-        
-        st.markdown("---")
-
-        # # 3. 뽀모도로 집중 타이머
-        # st.subheader("🍅 뽀모도로 집중 타이머")
-        # if st.button("🔥 25분 집중 시작하기!"):
-        #     progress_bar = st.progress(0)
-        #     status_text = st.empty()
-        #     for i in range(100):
-        #         time.sleep(0.03) 
-        #         progress_bar.progress(i + 1)
-        #         status_text.text(f"초집중 모드 가동 중... {i+1}% 완료")
-        #     st.success("🎉 25분 집중 완료! 우측 채팅창의 AI 코치에게 칭찬을 요구해보세요.")
-        #     st.session_state.pomodoro_done = True
 
     # ---------------------------------------------------
     # 탭 2: 스마트 재무 관리
