@@ -83,51 +83,48 @@ col_visual, col_chat = st.columns([6, 4])
 # ==========================================
 with col_visual:
     # ---------------------------------------------------
-    # 탭 1: 갓생 루틴 메이커 (레이아웃 최적화 수정본)
+    # 탭 1: 갓생 루틴 메이커 (파이 차트 높이/배치 완벽 고정)
     # ---------------------------------------------------
     if mode == "⏱️ 갓생(God-생) 루틴 메이커":
         st.subheader("📊 24시간 타임블록 설계")
         
-        # 1. 시간 설정 영역 (상단 배치)
-        col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
-        with col_ctrl1: sleep_h = st.slider("수면 시간", 0.0, 24.0, 7.0, 0.5)
-        with col_ctrl2: work_h = st.slider("업무/학습", 0.0, 24.0, 9.0, 0.5)
-        with col_ctrl3: study_h = st.slider("자기계발", 0.0, 24.0, 2.0, 0.5)
+        # 1. 시간 설정 슬라이더 (상단 배치)
+        c1, c2, c3 = st.columns(3)
+        with c1: sleep_h = st.slider("수면 시간", 0.0, 24.0, 7.0, 0.5)
+        with c2: work_h = st.slider("업무/학습", 0.0, 24.0, 9.0, 0.5)
+        with c3: study_h = st.slider("자기계발", 0.0, 24.0, 2.0, 0.5)
         rest_h = 24.0 - (sleep_h + work_h + study_h)
         
         st.markdown("---")
 
-        # 2. 차트 영역 (좌우 나란히 배치)
+        # 2. 파이 차트 배치 (정확히 동일한 높이와 폭 적용)
         col_left, col_right = st.columns(2)
         
-        # [왼쪽: 통계 분석]
+        # [왼쪽: 통계 데이터]
         with col_left:
             st.markdown("#### 📉 통계 분석")
             period = st.selectbox("기간 단위", ["요일별", "월별"], key="stat_period")
-            if period == "요일별":
-                val = st.selectbox("요일", ["월", "화", "수", "목", "금", "토", "일"], key="stat_day")
-                data = [6.5, 9.5, 2.5, 5.5]
-            else:
-                val = st.selectbox("월", range(1, 13), key="stat_month")
-                data = [7.0, 9.0, 2.0, 6.0]
+            val = st.selectbox("항목 선택", ["월", "화", "수", "목", "금", "토", "일"] if period == "요일별" else range(1, 13), key="stat_val")
             
-            fig_stat = px.pie(values=data, names=['수면', '업무', '자기계발', '휴식'], title=f"{val} 평균")
-            fig_stat.update_layout(margin=dict(t=40, b=10, l=10, r=10), height=300)
+            data = [6.5, 9.5, 2.5, 5.5] # 통계 예시
+            fig_stat = px.pie(values=data, names=['수면', '업무', '자기계발', '휴식'], title="평균 데이터")
+            # height를 명시적으로 고정하여 두 차트의 높이를 일치시킴
+            fig_stat.update_layout(height=400, margin=dict(t=50, b=0, l=0, r=0))
             st.plotly_chart(fig_stat, use_container_width=True)
 
         # [오른쪽: 오늘의 계획]
         with col_right:
             st.markdown("#### 📅 오늘의 계획")
             if rest_h < 0:
-                st.error("시간 합계가 24시간을 초과했습니다!")
-                fig_today = None
+                st.error("24시간을 초과했습니다!")
             else:
                 df_today = pd.DataFrame({
-                    '활동': [f'수면({sleep_h}h)', f'업무({work_h}h)', f'자기계발({study_h}h)', f'휴식({rest_h:.1f}h)'],
+                    '활동': ['수면', '업무', '자기계발', '휴식'],
                     '시간': [sleep_h, work_h, study_h, rest_h]
                 })
                 fig_today = px.pie(df_today, values='시간', names='활동', title="현재 타임블록")
-                fig_today.update_layout(margin=dict(t=40, b=10, l=10, r=10), height=300)
+                # 위 차트와 동일한 height 적용
+                fig_today.update_layout(height=400, margin=dict(t=50, b=0, l=0, r=0))
                 st.plotly_chart(fig_today, use_container_width=True)
         
         st.markdown("---")
