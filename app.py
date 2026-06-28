@@ -10,7 +10,7 @@ import time
 # ----------------------------------------------------------------------
 # 1. 페이지 기본 설정
 # ----------------------------------------------------------------------
-st.set_page_config(page_title="SKHynix 갓생 매니저", page_icon="🚀", layout="wide")
+st.set_page_config(page_title="SKHynix 성장 파트너", page_icon="🚀", layout="wide")
 
 # ----------------------------------------------------------------------
 # 2. API 키 설정 (Streamlit Secrets)
@@ -55,7 +55,7 @@ pay_str = f"D-{d_day_pay}" if d_day_pay > 0 else "D-Day (월급날! 💸)"
 # 4. 사이드바 구성 (프로필 및 전역 데이터)
 # ----------------------------------------------------------------------
 with st.sidebar:
-    st.header("🏢 SKHynix 갓생 매니저")
+    st.header("🏢 SKHynix 성장 파트너")
     st.markdown("---")
     st.markdown("### 👤 Profile\n**Name:** 안태경\n\n**Team:** 양산기술")
     st.markdown("---")
@@ -63,16 +63,14 @@ with st.sidebar:
     st.info(f"**입사일:** {join_str}\n\n**월급날:** {pay_str}")
     st.markdown("---")
     
-    # 💡 탭 3(인사이트)에서 활용될 핵심 전역 데이터
     st.markdown("### 🌡️ 오늘의 컨디션")
     condition = st.radio("현재 기분이 어떠신가요?", ["😀 최고예요!", "😐 그저 그래요", "😥 피곤해요"], horizontal=True)
     
     st.markdown("---")
     st.markdown("### 🎯 메뉴 선택")
     mode = st.radio("이동할 탭을 선택하세요:", 
-                    ["⏱️ 타임블록 & 뽀모도로", 
-                     "💰 첫 월급 & 소비 분석", 
-                     "📊 멘탈-달성률 대시보드"])
+                    ["⏱️ 갓생(God-생) 루틴 메이커", 
+                     "💰 스마트 재무/소비 관리"])
 
 # ----------------------------------------------------------------------
 # 5. 메인 화면 로직 (2분할 레이아웃 적용)
@@ -85,21 +83,21 @@ col_visual, col_chat = st.columns([6, 4])
 # ==========================================
 with col_visual:
     # ---------------------------------------------------
-    # 탭 1: 시간 관리
+    # 탭 1: 갓생 루틴 메이커 (타임블록 + 컨디션 분석 + 뽀모도로 통합)
     # ---------------------------------------------------
-    if mode == "⏱️ 타임블록 & 뽀모도로":
-        st.subheader("📊 24시간 타임블록 설계")
+    if mode == "⏱️ 갓생(God-생) 루틴 메이커":
         
-        # 시간 입력 슬라이더
-        sleep_h = st.slider("수면 시간 (시간)", 0, 24, 7)
-        work_h = st.slider("업무/학습 시간 (시간)", 0, 24, 9)
-        study_h = st.slider("자기계발 시간 (시간)", 0, 24, 2)
+        # 1. 24시간 타임블록 & 집중도 히트맵
+        st.subheader("📊 24시간 타임블록 설계")
+        col_slider1, col_slider2, col_slider3 = st.columns(3)
+        with col_slider1: sleep_h = st.slider("수면 시간", 0, 24, 7)
+        with col_slider2: work_h = st.slider("업무/학습", 0, 24, 9)
+        with col_slider3: study_h = st.slider("자기계발", 0, 24, 2)
         rest_h = 24 - (sleep_h + work_h + study_h)
         
         if rest_h < 0:
             st.error("총합이 24시간을 초과했습니다! 슬라이더를 조절해주세요.")
         else:
-            # 파이 차트 시각화 (matplotlib)
             fig, ax = plt.subplots(figsize=(6, 3))
             labels = ['Sleep', 'Work/Study', 'Self-Dev', 'Rest']
             sizes = [sleep_h, work_h, study_h, rest_h]
@@ -107,27 +105,49 @@ with col_visual:
             ax.pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors, startangle=90)
             ax.axis('equal')
             st.pyplot(fig)
-            
+
         st.markdown("---")
+        
+        # 2. 감정-컨디션 상관관계 분석기
+        st.subheader("🧠 감정-성취도 상관관계 분석")
+        st.write(f"오늘 안태경 님의 컨디션은 **'{condition}'** 입니다.")
+        
+        # 한 달 치 가상 더미 데이터 생성
+        dates = pd.date_range(end=today, periods=14)
+        condition_scores = np.random.randint(1, 4, size=14)
+        achievement = condition_scores * 25 + np.random.randint(-10, 10, size=14) 
+        
+        df_insight = pd.DataFrame({
+            "날짜": dates,
+            "컨디션 지수 (높을수록 좋음)": condition_scores * 30,
+            "일일 성취도 (%)": achievement
+        }).set_index("날짜")
+        
+        st.line_chart(df_insight)
+        
+        st.markdown("---")
+
+        # 3. 뽀모도로 집중 타이머
         st.subheader("🍅 뽀모도로 집중 타이머")
-        if st.button("25분 집중 시작하기!"):
+        if st.button("🔥 25분 집중 시작하기!"):
             progress_bar = st.progress(0)
             status_text = st.empty()
-            # 시연을 위해 1초를 1분처럼 작동하게 세팅 (실제론 25*60)
+            # 시연을 위해 1초를 1분처럼 작동하게 세팅
             for i in range(100):
-                time.sleep(0.05) # 시연용 (빠르게 슉 지나감)
+                time.sleep(0.03) 
                 progress_bar.progress(i + 1)
-                status_text.text(f"집중 중... {i+1}% 완료")
-            st.success("🎉 25분 집중 완료! AI 코치에게 칭찬을 요구해보세요.")
+                status_text.text(f"초집중 모드 가동 중... {i+1}% 완료")
+            st.success("🎉 25분 집중 완료! 우측 채팅창의 AI 코치에게 칭찬을 요구해보세요.")
+            # 뽀모도로 완료 상태를 세션에 저장
+            st.session_state.pomodoro_done = True
 
     # ---------------------------------------------------
-    # 탭 2: 재무 관리
+    # 탭 2: 스마트 재무 관리
     # ---------------------------------------------------
-    elif mode == "💰 첫 월급 & 소비 분석":
-        st.subheader("📈 미래 자산 시뮬레이터")
+    elif mode == "💰 스마트 재무/소비 관리":
+        st.subheader("📈 첫 월급 황금비율 시뮬레이터")
         save_ratio = st.slider("첫 월급 저축 비율 (%)", 0, 100, 50)
         
-        # 복리 계산 (가상: 월급 300만 원, 연이율 5% 가정)
         base_salary = 3000000
         monthly_save = base_salary * (save_ratio / 100)
         years = [1, 3, 5]
@@ -137,8 +157,7 @@ with col_visual:
         st.bar_chart(chart_data)
         
         st.markdown("---")
-        st.subheader("💸 이번 주 소비 내역 입력")
-        # 편집 가능한 데이터프레임
+        st.subheader("💸 소비 패턴 분석 및 팩폭 컨설팅")
         df_expenses = pd.DataFrame([
             {"카테고리": "식비(배달 포함)", "금액": 150000},
             {"카테고리": "교통비", "금액": 30000},
@@ -146,64 +165,49 @@ with col_visual:
             {"카테고리": "기타", "금액": 20000}
         ])
         edited_df = st.data_editor(df_expenses, num_rows="dynamic")
-        
-        # 소비 데이터 차트화
-        st.write("카테고리별 지출 비율")
         st.bar_chart(edited_df.set_index("카테고리"))
-
-    # ---------------------------------------------------
-    # 탭 3: 통합 인사이트 (컨디션+달성률)
-    # ---------------------------------------------------
-    elif mode == "📊 멘탈-달성률 대시보드":
-        st.subheader("🧠 컨디션 기반 퍼포먼스 분석")
-        st.write(f"오늘 안태경 님의 컨디션은 **'{condition}'** 입니다.")
-        
-        # 한 달 치 가상 더미 데이터 생성
-        dates = pd.date_range(end=today, periods=14)
-        # 컨디션(1~3)과 목표달성률(%)의 상관관계를 보여주는 가상 데이터
-        condition_scores = np.random.randint(1, 4, size=14)
-        achievement = condition_scores * 25 + np.random.randint(-10, 10, size=14) 
-        
-        df_insight = pd.DataFrame({
-            "날짜": dates,
-            "컨디션 지수 (높을수록 좋음)": condition_scores * 30, # 스케일 맞추기
-            "루틴 달성률 (%)": achievement
-        }).set_index("날짜")
-        
-        st.line_chart(df_insight)
-        st.info("💡 과거 데이터를 보면, 컨디션 지수가 떨어지는 날 목표 달성률도 급격히 하락하는 패턴이 있습니다.")
 
 # ==========================================
 # [오른쪽 영역] AI 에이전트 채팅
 # ==========================================
 with col_chat:
-    st.subheader("💬 맞춤형 AI 코칭")
+    st.subheader("💬 AI 1:1 맞춤 코칭")
     
-    # 탭별 프롬프트 및 환영 메시지 동적 생성
-    if mode == "⏱️ 타임블록 & 뽀모도로":
-        sys_prompt = f"너는 팩트폭격을 하는 루틴 코치야. 사용자의 오늘 계획은 수면 {sleep_h}시간, 업무 {work_h}시간, 공부 {study_h}시간이야. 이 밸런스를 평가하고 뼈때리는 조언을 해줘."
-        greeting = f"안태경님, 오늘 남은 휴식 시간은 {rest_h}시간이군요. 이대로 괜찮은지 밸런스를 점검해 드릴까요?"
-    elif mode == "💰 첫 월급 & 소비 분석":
-        max_expense = edited_df.loc[edited_df["금액"].idxmax()]["카테고리"]
-        sys_prompt = f"너는 엄격한 재무 상담가야. 사용자가 이번 주 '{max_expense}'에 가장 많은 돈을 썼어. 내일 당장 실천할 구체적인 절약 미션을 줘."
-        greeting = f"재무 상담가입니다. 현재 저축률을 {save_ratio}%로 설정하셨네요! 이번 주 지출을 바탕으로 절약 미션을 받아보시겠어요?"
+    # 탭별 프롬프트 세팅
+    if mode == "⏱️ 갓생(God-생) 루틴 메이커":
+        sys_prompt = f"""
+        너는 데이터 기반으로 팩트 폭격을 하는 엄격하고 다정한 루틴 코치야. 
+        사용자의 현재 상황:
+        - 오늘의 컨디션: {condition}
+        - 오늘 시간 배분: 수면 {sleep_h}시간, 업무 {work_h}시간, 공부 {study_h}시간, 휴식 {rest_h}시간.
+        
+        이 데이터를 바탕으로 수면 시간이 불규칙한지, 컨디션 저하 패턴이 있는지 팩트 폭격을 해주고, 휴식이나 다음 학습 스텝을 제안해 줘.
+        """
+        greeting = f"안녕하세요 안태경 님! 오늘 컨디션은 '{condition}' 상태시군요. 좌측에 입력하신 시간 배분과 과거 성취도 데이터를 분석해 드릴까요?"
     else:
-        sys_prompt = f"너는 심리와 데이터를 종합 분석하는 코치야. 사용자의 현재 컨디션은 '{condition}'야. 이 컨디션일 때 발생할 수 있는 리스크를 막기 위한 조언 3가지를 정리해 줘."
-        greeting = f"수석 분석 코치입니다. 오늘 컨디션이 '{condition}' 상태시군요. 이런 날을 위한 맞춤형 루틴 방어 전략을 세워드릴까요?"
+        max_expense = edited_df.loc[edited_df["금액"].idxmax()]["카테고리"]
+        sys_prompt = f"너는 엄격한 재무 상담가야. 사용자가 이번 주 '{max_expense}'에 가장 많은 돈을 썼어. 내일 당장 실천할 구체적인 절약 미션을 던져줘."
+        greeting = f"재무 상담가입니다. 현재 저축률을 {save_ratio}%로 설정하셨네요! 이번 주 지출 내역을 바탕으로 뼈 때리는 절약 미션을 받아보시겠어요?"
 
-    # 모드 변경 시 채팅 초기화 및 환영 메시지 삽입
+    # 모드 변경 시 채팅 초기화
     if "current_mode" not in st.session_state or st.session_state.current_mode != mode:
         st.session_state.messages = [{"role": "assistant", "content": greeting}]
         st.session_state.current_mode = mode
 
-    chat_container = st.container(height=500)
+    chat_container = st.container(height=550)
     with chat_container:
         for msg in st.session_state.messages:
             with st.chat_message(msg["role"]):
                 st.write(msg["content"])
 
-    # 채팅 입력 및 AI 응답
-    if user_input := st.chat_input("AI 코치에게 질문하기..."):
+    # 뽀모도로 완료 버튼을 눌렀을 때 자동 채팅 트리거
+    user_input = st.chat_input("AI 코치에게 질문하기...")
+    
+    if getattr(st.session_state, 'pomodoro_done', False):
+        user_input = "나 방금 뽀모도로 25분 집중 완료했어! 성취도 리포트랑 다정한 칭찬 멘트, 그리고 다음 스텝 추천해 줘."
+        st.session_state.pomodoro_done = False # 한 번 실행 후 초기화
+
+    if user_input:
         with chat_container:
             with st.chat_message("user"):
                 st.write(user_input)
