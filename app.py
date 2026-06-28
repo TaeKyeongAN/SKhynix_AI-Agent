@@ -12,11 +12,14 @@ import time
 # ----------------------------------------------------------------------
 st.set_page_config(page_title="SKHynix 성장 파트너", page_icon="🚀", layout="wide")
 
+# Matplotlib 한글 폰트 설정 (환경에 따라 'Malgun Gothic' 등 설정 필요)
+plt.rcParams['font.family'] = 'sans-serif'
+
 # ----------------------------------------------------------------------
 # 2. API 키 설정 (Streamlit Secrets)
 # ----------------------------------------------------------------------
 try:
-    api_key = st.secrets["GEMINI_API_KEY"]
+    api_key = st.secrets["GAQ.Ab8RN6Kn9zUQ0qVPwQHYxzy1MQIx3m7QUx0k-_nEFiQCsdC2Iw"]
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel('gemini-3.5-flash')
 except:
@@ -63,10 +66,10 @@ with st.sidebar:
     st.info(f"**입사일:** {join_str}\n\n**월급날:** {pay_str}")
     st.markdown("---")
     
-    st.markdown("### 🌡️ 오늘의 컨디션")
-    condition = st.radio("현재 기분이 어떠신가요?", ["😀 최고예요!", "😐 그저 그래요", "😥 피곤해요"], horizontal=True)
+    # 세션 상태에 데이터 저장소 초기화
+    if 'log_data' not in st.session_state:
+        st.session_state.log_data = pd.DataFrame(columns=['날짜', '시간대', '컨디션', '성취도'])
     
-    st.markdown("---")
     st.markdown("### 🎯 메뉴 선택")
     mode = st.radio("이동할 탭을 선택하세요:", 
                     ["⏱️ 갓생(God-생) 루틴 메이커", 
@@ -83,23 +86,23 @@ col_visual, col_chat = st.columns([6, 4])
 # ==========================================
 with col_visual:
     # ---------------------------------------------------
-    # 탭 1: 갓생 루틴 메이커 (타임블록 + 컨디션 분석 + 뽀모도로 통합)
+    # 탭 1: 갓생 루틴 메이커
     # ---------------------------------------------------
     if mode == "⏱️ 갓생(God-생) 루틴 메이커":
         
-        # 1. 24시간 타임블록 & 집중도 히트맵
+        # 1. 24시간 타임블록 (0.5단위, 한글 라벨, (시간) 추가)
         st.subheader("📊 24시간 타임블록 설계")
         col_slider1, col_slider2, col_slider3 = st.columns(3)
-        with col_slider1: sleep_h = st.slider("수면 시간", 0, 24, 7)
-        with col_slider2: work_h = st.slider("업무/학습", 0, 24, 9)
-        with col_slider3: study_h = st.slider("자기계발", 0, 24, 2)
-        rest_h = 24 - (sleep_h + work_h + study_h)
+        with col_slider1: sleep_h = st.slider("수면 시간", 0.0, 24.0, 7.0, 0.5)
+        with col_slider2: work_h = st.slider("업무/학습", 0.0, 24.0, 9.0, 0.5)
+        with col_slider3: study_h = st.slider("자기계발", 0.0, 24.0, 2.0, 0.5)
+        rest_h = 24.0 - (sleep_h + work_h + study_h)
         
         if rest_h < 0:
             st.error("총합이 24시간을 초과했습니다! 슬라이더를 조절해주세요.")
         else:
             fig, ax = plt.subplots(figsize=(6, 3))
-            labels = ['Sleep', 'Work/Study', 'Self-Dev', 'Rest']
+            labels = [f'수면({sleep_h}시간)', f'업무/학습({work_h}시간)', f'자기계발({study_h}시간)', f'휴식({rest_h:.1f}시간)']
             sizes = [sleep_h, work_h, study_h, rest_h]
             colors = ['#ff9999','#66b3ff','#99ff99','#ffcc99']
             ax.pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors, startangle=90)
@@ -108,38 +111,33 @@ with col_visual:
 
         st.markdown("---")
         
-        # 2. 감정-컨디션 상관관계 분석기
+        # 2. 감정-컨디션 상관관계 분석기 (하루 3회, 0~100점 선택)
         st.subheader("🧠 감정-성취도 상관관계 분석")
-        st.write(f"오늘 안태경 님의 컨디션은 **'{condition}'** 입니다.")
         
-        # 한 달 치 가상 더미 데이터 생성
-        dates = pd.date_range(end=today, periods=14)
-        condition_scores = np.random.randint(1, 4, size=14)
-        achievement = condition_scores * 25 + np.random.randint(-10, 10, size=14) 
+        time_slot = st.selectbox("시간대 선택", ["아침", "점심", "저녁"])
+        cond_map = {"피곤해요": 0, "그저 그래요": 50, "최고예요": 100}
+        cond_label = st.select_slider("컨디션 지수", options=["피곤해요", "그저 그래요", "최고예요"])
+        achieve = st.slider("일일 성취도 (%)", 0, 100, 50)
         
-        df_insight = pd.DataFrame({
-            "날짜": dates,
-            "컨디션 지수 (높을수록 좋음)": condition_scores * 30,
-            "일일 성취도 (%)": achievement
-        }).set_index("날짜")
-        
-        st.line_chart(df_insight)
-        
-        st.markdown("---")
+        if st.button("기록 저장"):
+            new_entry = pd.DataFrame({'날짜': [today], '시간대': [time_slot], '컨디션': [cond_map[cond_label]], '성취도': [achieve]})
+            st.session_state.log_data = pd.concat([st.session_state.log_data, new_entry], ignore_index=True)
+            st.success(f"{time_slot} 기록 완료!")
 
-        # 3. 뽀모도로 집중 타이머
-        st.subheader("🍅 뽀모도로 집중 타이머")
-        if st.button("🔥 25분 집중 시작하기!"):
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            # 시연을 위해 1초를 1분처럼 작동하게 세팅
-            for i in range(100):
-                time.sleep(0.03) 
-                progress_bar.progress(i + 1)
-                status_text.text(f"초집중 모드 가동 중... {i+1}% 완료")
-            st.success("🎉 25분 집중 완료! 우측 채팅창의 AI 코치에게 칭찬을 요구해보세요.")
-            # 뽀모도로 완료 상태를 세션에 저장
-            st.session_state.pomodoro_done = True
+        # 분석 차트들
+        if not st.session_state.log_data.empty:
+            df = st.session_state.log_data
+            
+            # 하루 평균 컨디션 등 분석
+            st.write("📊 분석 차트")
+            st.line_chart(df[['컨디션', '성취도']])
+            st.bar_chart(df.groupby('날짜')[['컨디션', '성취도']].mean())
+            
+            fig2, ax2 = plt.subplots()
+            ax2.scatter(df['컨디션'], df['성취도'])
+            ax2.set_xlabel("컨디션")
+            ax2.set_ylabel("성취도")
+            st.pyplot(fig2)
 
     # ---------------------------------------------------
     # 탭 2: 스마트 재무 관리
@@ -173,23 +171,13 @@ with col_visual:
 with col_chat:
     st.subheader("💬 AI 1:1 맞춤 코칭")
     
-    # 탭별 프롬프트 세팅
     if mode == "⏱️ 갓생(God-생) 루틴 메이커":
-        sys_prompt = f"""
-        너는 데이터 기반으로 팩트 폭격을 하는 엄격하고 다정한 루틴 코치야. 
-        사용자의 현재 상황:
-        - 오늘의 컨디션: {condition}
-        - 오늘 시간 배분: 수면 {sleep_h}시간, 업무 {work_h}시간, 공부 {study_h}시간, 휴식 {rest_h}시간.
-        
-        이 데이터를 바탕으로 수면 시간이 불규칙한지, 컨디션 저하 패턴이 있는지 팩트 폭격을 해주고, 휴식이나 다음 학습 스텝을 제안해 줘.
-        """
-        greeting = f"안녕하세요 안태경 님! 오늘 컨디션은 '{condition}' 상태시군요. 좌측에 입력하신 시간 배분과 과거 성취도 데이터를 분석해 드릴까요?"
+        sys_prompt = "너는 데이터 기반의 루틴 코치야. 기록된 컨디션과 성취도 데이터를 분석해줘."
+        greeting = "안녕하세요! 컨디션과 성취도를 기록하고 분석을 요청해 보세요."
     else:
-        max_expense = edited_df.loc[edited_df["금액"].idxmax()]["카테고리"]
-        sys_prompt = f"너는 엄격한 재무 상담가야. 사용자가 이번 주 '{max_expense}'에 가장 많은 돈을 썼어. 내일 당장 실천할 구체적인 절약 미션을 던져줘."
-        greeting = f"재무 상담가입니다. 현재 저축률을 {save_ratio}%로 설정하셨네요! 이번 주 지출 내역을 바탕으로 뼈 때리는 절약 미션을 받아보시겠어요?"
+        sys_prompt = "너는 엄격한 재무 상담가야."
+        greeting = "재무 상담가입니다. 지출 내역을 분석해 드릴까요?"
 
-    # 모드 변경 시 채팅 초기화
     if "current_mode" not in st.session_state or st.session_state.current_mode != mode:
         st.session_state.messages = [{"role": "assistant", "content": greeting}]
         st.session_state.current_mode = mode
@@ -200,21 +188,15 @@ with col_chat:
             with st.chat_message(msg["role"]):
                 st.write(msg["content"])
 
-    # 뽀모도로 완료 버튼을 눌렀을 때 자동 채팅 트리거
-    user_input = st.chat_input("AI 코치에게 질문하기...")
-    
-    if getattr(st.session_state, 'pomodoro_done', False):
-        user_input = "나 방금 뽀모도로 25분 집중 완료했어! 성취도 리포트랑 다정한 칭찬 멘트, 그리고 다음 스텝 추천해 줘."
-        st.session_state.pomodoro_done = False # 한 번 실행 후 초기화
-
-    if user_input:
+    if user_input := st.chat_input("AI 코치에게 질문하기..."):
         with chat_container:
             with st.chat_message("user"):
                 st.write(user_input)
             st.session_state.messages.append({"role": "user", "content": user_input})
             
+            # AI 응답 로직
+            prompt = f"{sys_prompt}\n\n데이터: {st.session_state.log_data.tail(5).to_string()}\n질문: {user_input}"
             with st.chat_message("assistant"):
-                prompt = f"{sys_prompt}\n\n사용자 질문: {user_input}"
                 response = model.generate_content(prompt)
                 st.write(response.text)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
