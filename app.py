@@ -87,23 +87,44 @@ with col_visual:
     # ---------------------------------------------------
     if mode == "⏱️ 갓생(God-생) 루틴 메이커":
         
-        # 1. 24시간 타임블록 (Plotly 사용)
+        # 1. 24시간 타임블록 설계
         st.subheader("📊 24시간 타임블록 설계")
-        col_slider1, col_slider2, col_slider3 = st.columns(3)
-        with col_slider1: sleep_h = st.slider("수면 시간", 0, 24, 7)
-        with col_slider2: work_h = st.slider("업무/학습", 0, 24, 9)
-        with col_slider3: study_h = st.slider("자기계발", 0, 24, 2)
-        rest_h = 24 - (sleep_h + work_h + study_h)
         
-        if rest_h < 0:
-            st.error("총합이 24시간을 초과했습니다! 슬라이더를 조절해주세요.")
-        else:
-            df_time = pd.DataFrame({
-                '활동': ['수면', '업무/학습', '자기계발', '휴식'],
-                '시간': [sleep_h, work_h, study_h, rest_h]
-            })
-            fig = px.pie(df_time, values='시간', names='활동', hole=0.3)
-            st.plotly_chart(fig, use_container_width=True)
+        col_ctrl, col_stats, col_today = st.columns([2, 4, 4])
+        
+        # 컨트롤러 (슬라이더 0.5 단위)
+        with col_ctrl:
+            sleep_h = st.slider("수면 시간", 0.0, 24.0, 7.0, 0.5)
+            work_h = st.slider("업무/학습", 0.0, 24.0, 9.0, 0.5)
+            study_h = st.slider("자기계발", 0.0, 24.0, 2.0, 0.5)
+            rest_h = 24.0 - (sleep_h + work_h + study_h)
+            
+        # 통계 파이차트 (좌측)
+        with col_stats:
+            st.markdown("**통계 분석**")
+            period = st.selectbox("기간 선택", ["요일별", "월별"])
+            if period == "요일별":
+                val = st.selectbox("요일 선택", ["월", "화", "수", "목", "금", "토", "일"])
+                data = [6.5, 9.5, 2.5, 5.5] # 가상 요일 평균
+            else:
+                val = st.selectbox("월 선택", range(1, 13))
+                data = [7.0, 9.0, 2.0, 6.0] # 가상 월 평균
+                
+            fig_stat = px.pie(values=data, names=['수면', '업무', '자기계발', '휴식'], title=f"{val} 평균 데이터")
+            st.plotly_chart(fig_stat, use_container_width=True)
+            
+        # 오늘 파이차트 (우측)
+        with col_today:
+            st.markdown("**오늘의 계획**")
+            if rest_h < 0:
+                st.error("24시간 초과!")
+            else:
+                df_today = pd.DataFrame({
+                    '활동': [f'수면({sleep_h}시간)', f'업무({work_h}시간)', f'자기계발({study_h}시간)', f'휴식({rest_h:.1f}시간)'],
+                    '시간': [sleep_h, work_h, study_h, rest_h]
+                })
+                fig_today = px.pie(df_today, values='시간', names='활동', title="현재 타임블록")
+                st.plotly_chart(fig_today, use_container_width=True)
 
         st.markdown("---")
         
