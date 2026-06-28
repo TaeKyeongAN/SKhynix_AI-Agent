@@ -7,6 +7,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
+import matplotlib.font_manager as fm
+# 한글 폰트 설정 (시스템에 설치된 폰트 활용)
+# Streamlit Cloud 환경이나 일반 Linux 환경에서 가장 흔히 사용되는 폰트들을 후보로 지정합니다.
+font_list = ['NanumGothic', 'Malgun Gothic', 'AppleGothic', 'AppleGothic.ttf']
+
+for font_name in font_list:
+    try:
+        plt.rcParams['font.family'] = font_name
+        # 폰트가 적용되었는지 확인 (에러가 안 나면 성공)
+        plt.title('테스트')
+        break
+    except:
+        continue
+
 # ----------------------------------------------------------------------
 # 1. 페이지 기본 설정
 # ----------------------------------------------------------------------
