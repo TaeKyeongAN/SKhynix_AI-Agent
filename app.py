@@ -19,7 +19,7 @@ plt.rcParams['font.family'] = 'sans-serif'
 # 2. API 키 설정 (Streamlit Secrets)
 # ----------------------------------------------------------------------
 try:
-    api_key = st.secrets["GAQ.Ab8RN6Kn9zUQ0qVPwQHYxzy1MQIx3m7QUx0k-_nEFiQCsdC2Iw"]
+    api_key = st.secrets["GEMINI_API_KEY"]
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel('gemini-3.5-flash')
 except:
