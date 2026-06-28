@@ -88,25 +88,34 @@ with col_visual:
     if mode == "⏱️ 갓생(God-생) 루틴 메이커":
         st.subheader("📊 24시간 타임블록 설계")
         
-        # 1. 차트 영역 (좌우 2열 배치)
+        # 색상 고정 맵핑
+        color_map = {'수면': '#3498db', '업무': '#e74c3c', '자기계발': '#f1c40f', '휴식': '#2ecc71'}
+        
         col_left, col_right = st.columns(2)
         
         # [왼쪽: 통계 분석]
         with col_left:
             st.markdown("#### 📉 통계 분석")
             period = st.selectbox("기간 단위", ["요일별", "월별"], key="stat_period")
-            val = st.selectbox("항목 선택", ["월", "화", "수", "목", "금", "토", "일"] if period == "요일별" else range(1, 13), key="stat_val")
             
-            # [수정된 로직] 요일/월별 특성 반영 데이터
+            # 요일/월 텍스트 처리
+            options = ["월", "화", "수", "목", "금", "토", "일"] if period == "요일별" else [f"{i}월" for i in range(1, 13)]
+            val = st.selectbox("항목 선택", options, key="stat_val")
+            
+            # 데이터 로직
             if period == "요일별":
                 base_data = {"월": [7, 10, 2, 5], "금": [7, 9, 1, 7], "토": [8, 2, 6, 8], "일": [9, 1, 6, 8]}
-                data = base_data.get(val, [7, 8, 4, 5])
+                data_values = base_data.get(val, [7, 8, 4, 5])
             else:
-                if val in [6, 7, 8]: data = [7, 7, 3, 7] # 여름
-                elif val == 12: data = [6, 11, 4, 3]    # 연말
-                else: data = [7, 9, 2, 6]              # 평시
+                month_num = int(val.replace("월", ""))
+                if month_num in [6, 7, 8]: data_values = [7, 7, 3, 7]
+                elif month_num == 12: data_values = [6, 11, 4, 3]
+                else: data_values = [7, 9, 2, 6]
             
-            fig_stat = px.pie(values=data, names=['수면', '업무', '자기계발', '휴식'], title="평균 데이터")
+            df_stat = pd.DataFrame({'활동': ['수면', '업무', '자기계발', '휴식'], '시간': data_values})
+            fig_stat = px.pie(df_stat, values='시간', names='활동', 
+                              title=f"{val} 데이터",
+                              color='활동', color_discrete_map=color_map)
             fig_stat.update_layout(height=350, margin=dict(t=50, b=0, l=0, r=0))
             st.plotly_chart(fig_stat, use_container_width=True)
 
@@ -114,14 +123,12 @@ with col_visual:
         with col_right:
             st.markdown("#### 📅 오늘의 계획")
             
-            # 슬라이더 영역 (오른쪽 차트 바로 위)
             c1, c2, c3 = st.columns(3)
             with c1: sleep_h = st.slider("수면", 0.0, 24.0, 7.0, 0.5)
             with c2: work_h = st.slider("업무", 0.0, 24.0, 9.0, 0.5)
             with c3: study_h = st.slider("자기계발", 0.0, 24.0, 2.0, 0.5)
             rest_h = 24.0 - (sleep_h + work_h + study_h)
             
-            # 왼쪽의 셀렉트박스 2개 높이만큼 여백 확보 (기존 방식 유지)
             st.write("") 
             st.write("")
             st.write("")
@@ -132,7 +139,9 @@ with col_visual:
                 st.error("시간 합계 초과!")
             else:
                 df_today = pd.DataFrame({'활동': ['수면', '업무', '자기계발', '휴식'], '시간': [sleep_h, work_h, study_h, rest_h]})
-                fig_today = px.pie(df_today, values='시간', names='활동', title="현재 타임블록")
+                fig_today = px.pie(df_today, values='시간', names='활동', 
+                                   title="현재 타임블록",
+                                   color='활동', color_discrete_map=color_map)
                 fig_today.update_layout(height=350, margin=dict(t=50, b=0, l=0, r=0))
                 st.plotly_chart(fig_today, use_container_width=True)
         
