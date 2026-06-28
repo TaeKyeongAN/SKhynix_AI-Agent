@@ -83,49 +83,51 @@ col_visual, col_chat = st.columns([6, 4])
 # ==========================================
 with col_visual:
     # ---------------------------------------------------
-    # 탭 1: 갓생 루틴 메이커
+    # 탭 1: 갓생 루틴 메이커 (수정본)
     # ---------------------------------------------------
     if mode == "⏱️ 갓생(God-생) 루틴 메이커":
-        
-        # 1. 24시간 타임블록 설계
         st.subheader("📊 24시간 타임블록 설계")
         
-        col_ctrl, col_stats, col_today = st.columns([2, 4, 4])
+        # 컨트롤 영역
+        col_ctrl1, col_ctrl2, col_ctrl3 = st.columns(3)
+        with col_ctrl1: sleep_h = st.slider("수면 시간", 0.0, 24.0, 7.0, 0.5)
+        with col_ctrl2: work_h = st.slider("업무/학습", 0.0, 24.0, 9.0, 0.5)
+        with col_ctrl3: study_h = st.slider("자기계발", 0.0, 24.0, 2.0, 0.5)
+        rest_h = 24.0 - (sleep_h + work_h + study_h)
+
+        # 차트 영역 (좌/우 배치)
+        st.markdown("---")
+        col_left, col_right = st.columns(2)
         
-        # 컨트롤러 (슬라이더 0.5 단위)
-        with col_ctrl:
-            sleep_h = st.slider("수면 시간", 0.0, 24.0, 7.0, 0.5)
-            work_h = st.slider("업무/학습", 0.0, 24.0, 9.0, 0.5)
-            study_h = st.slider("자기계발", 0.0, 24.0, 2.0, 0.5)
-            rest_h = 24.0 - (sleep_h + work_h + study_h)
-            
-        # 통계 파이차트 (좌측)
-        with col_stats:
-            st.markdown("**통계 분석**")
-            period = st.selectbox("기간 선택", ["요일별", "월별"])
+        # 1. 왼쪽: 통계 데이터
+        with col_left:
+            st.markdown("#### 📉 통계 분석")
+            period = st.selectbox("기간 단위", ["요일별", "월별"])
             if period == "요일별":
-                val = st.selectbox("요일 선택", ["월", "화", "수", "목", "금", "토", "일"])
-                data = [6.5, 9.5, 2.5, 5.5] # 가상 요일 평균
+                val = st.selectbox("요일", ["월", "화", "수", "목", "금", "토", "일"])
+                data = [6.5, 9.5, 2.5, 5.5]
             else:
-                val = st.selectbox("월 선택", range(1, 13))
-                data = [7.0, 9.0, 2.0, 6.0] # 가상 월 평균
-                
-            fig_stat = px.pie(values=data, names=['수면', '업무', '자기계발', '휴식'], title=f"{val} 평균 데이터")
-            st.plotly_chart(fig_stat, use_container_width=True)
+                val = st.selectbox("월", range(1, 13))
+                data = [7.0, 9.0, 2.0, 6.0]
             
-        # 오늘 파이차트 (우측)
-        with col_today:
-            st.markdown("**오늘의 계획**")
+            fig_stat = px.pie(values=data, names=['수면', '업무', '자기계발', '휴식'], title=f"{val} 평균 데이터")
+            fig_stat.update_layout(margin=dict(t=30, b=10, l=10, r=10), height=300)
+            st.plotly_chart(fig_stat, use_container_width=True)
+
+        # 2. 오른쪽: 오늘의 계획
+        with col_right:
+            st.markdown("#### 📅 오늘의 계획")
             if rest_h < 0:
-                st.error("24시간 초과!")
+                st.error("시간 합계가 24시간을 초과했습니다!")
             else:
                 df_today = pd.DataFrame({
                     '활동': [f'수면({sleep_h}시간)', f'업무({work_h}시간)', f'자기계발({study_h}시간)', f'휴식({rest_h:.1f}시간)'],
                     '시간': [sleep_h, work_h, study_h, rest_h]
                 })
                 fig_today = px.pie(df_today, values='시간', names='활동', title="현재 타임블록")
+                fig_today.update_layout(margin=dict(t=30, b=10, l=10, r=10), height=300)
                 st.plotly_chart(fig_today, use_container_width=True)
-
+        
         st.markdown("---")
         
         # 2. 감정-컨디션 상관관계 분석기 (Plotly 사용)
@@ -145,17 +147,17 @@ with col_visual:
         
         st.markdown("---")
 
-        # 3. 뽀모도로 집중 타이머
-        st.subheader("🍅 뽀모도로 집중 타이머")
-        if st.button("🔥 25분 집중 시작하기!"):
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            for i in range(100):
-                time.sleep(0.03) 
-                progress_bar.progress(i + 1)
-                status_text.text(f"초집중 모드 가동 중... {i+1}% 완료")
-            st.success("🎉 25분 집중 완료! 우측 채팅창의 AI 코치에게 칭찬을 요구해보세요.")
-            st.session_state.pomodoro_done = True
+        # # 3. 뽀모도로 집중 타이머
+        # st.subheader("🍅 뽀모도로 집중 타이머")
+        # if st.button("🔥 25분 집중 시작하기!"):
+        #     progress_bar = st.progress(0)
+        #     status_text = st.empty()
+        #     for i in range(100):
+        #         time.sleep(0.03) 
+        #         progress_bar.progress(i + 1)
+        #         status_text.text(f"초집중 모드 가동 중... {i+1}% 완료")
+        #     st.success("🎉 25분 집중 완료! 우측 채팅창의 AI 코치에게 칭찬을 요구해보세요.")
+        #     st.session_state.pomodoro_done = True
 
     # ---------------------------------------------------
     # 탭 2: 스마트 재무 관리
