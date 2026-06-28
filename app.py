@@ -119,8 +119,7 @@ with col_visual:
             st.write("")
             st.write("")
             st.write("")
-            st.write("")
-            
+                        
             if rest_h < 0:
                 st.error("시간 합계 초과!")
             else:
@@ -206,5 +205,3 @@ with col_chat:
         for msg in st.session_state.messages:
             with st.chat_message(msg["role"]):
                 st.write(msg["content"])
-
-
