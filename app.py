@@ -378,59 +378,65 @@ with tab2:
                 st.session_state.messages_2.append({"role": "assistant", "content": response_2.text})
 
 # ==========================================
-# 탭 3: 월급 시뮬레이터 (원상복구 및 차트 통합 개편)
+# 탭 3: 월급 시뮬레이터 (슬라이더 색상 동적 변경 적용)
 # ==========================================
 with tab3:
     col_vis3, col_chat3 = st.columns([6, 4])
     
     with col_vis3:
-        st.subheader("📈 월급 시뮬레이터")
+        st.markdown("### 📈 월급 시뮬레이터 <span style='font-size:16px; color:gray; font-weight:normal; margin-left:15px;'>예상 월 세후 실수령액: <b>3,750,000원</b> (원 단위 예산 설정)</span>", unsafe_allow_html=True)
         net_salary = 3750000 
         
-        # 💵 예상 월 실수령액 텍스트 복구
-        st.markdown(f"### 💵 예상 월 실수령액: `3,750,000원`")
+        with st.expander("🏠 고정 지출 상세 내역 (정기 결제 항목 보기/편집)", expanded=False):
+            fixed_expenses_data = pd.DataFrame([
+                {"항목": "휴대폰 기기 + 통신", "금액": 105000},
+                {"항목": "구글 AI Pro", "금액": 29000},
+                {"항목": "유튜브 프리미엄", "금액": 15000},
+                {"항목": "넷플릭스", "금액": 13500},
+                {"항목": "카카오톡", "금액": 6000},
+                {"항목": "티빙", "금액": 5500}
+            ])
+            edited_fixed = st.data_editor(fixed_expenses_data, num_rows="dynamic", use_container_width=True)
         
-        st.markdown("---")
-        st.markdown("#### 🛠️ 월 예산 설정 (원 단위)")
-        
-        # 1. 고정 지출 리스트 복구 (6개 항목)
-        st.markdown("#### 🏠 고정 지출 상세 (정기 결제)")
-        fixed_expenses_data = pd.DataFrame([
-            {"항목": "휴대폰 기기 + 통신", "금액": 105000},
-            {"항목": "구글 AI Pro", "금액": 29000},
-            {"항목": "유튜브 프리미엄", "금액": 15000},
-            {"항목": "넷플릭스", "금액": 13500},
-            {"항목": "카카오톡", "금액": 6000},
-            {"항목": "티빙", "금액": 5500}
-        ])
-        
-        edited_fixed = st.data_editor(fixed_expenses_data, num_rows="dynamic", use_container_width=True)
         total_fixed = edited_fixed["금액"].sum()
         
         st.write("")
-        # 2. 투자/저축 및 수익률 설정 (150만원 기본값 복구 및 -20~+20 범위 수정)
         c1, c2 = st.columns(2)
         with c1:
-            amt_save = st.number_input("💰 저축/투자 금액 (원)", min_value=0, max_value=net_salary, value=1500000, step=10000)
+            amt_save = st.number_input("💰 저축/투자 금액 (원)", min_value=0, max_value=net_salary, value=1500000, step=100000, key="num_save_3")
         with c2:
-            ret_rate = st.slider("📊 수익률 시뮬레이션 (%)", -20.0, 20.0, 4.0, 0.5)
+            ret_rate = st.slider("😈 수익률 시뮬레이션 (-20% 지옥 ~ +20% 천국) 😇", -20.0, 20.0, 4.0, 0.5, key="slide_rate_3")
             
-        # 잔액 계산
+            # [NEW] 슬라이더 UI 색상을 동적으로 변경하는 CSS 인젝션
+            if ret_rate > 0: slider_color = "#e74c3c" # 빨간색
+            elif ret_rate < 0: slider_color = "#3498db" # 파란색
+            else: slider_color = "#95a5a6" # 회색 (0.0%)
+            
+            st.markdown(f"""
+            <style>
+                /* 슬라이더 동그라미(Thumb) 색상 변경 */
+                div.stSlider > div[data-baseweb="slider"] div[role="slider"] {{
+                    background-color: {slider_color} !important;
+                }}
+                /* 슬라이더 채워지는 바(Track) 색상 변경 */
+                div.stSlider > div[data-baseweb="slider"] div[data-testid="stTickBar"] > div {{
+                    background-color: {slider_color} !important;
+                }}
+            </style>
+            """, unsafe_allow_html=True)
+            
         amt_flex = net_salary - total_fixed - amt_save
         
         st.write("")
         m1, m2, m3 = st.columns(3)
-        m1.metric("저축/투자", f"{amt_save:,} 원")
-        m2.metric("고정 지출", f"{total_fixed:,} 원")
+        m1.metric("월 투자액", f"{amt_save:,} 원")
+        m2.metric("고정 지출 합계", f"{total_fixed:,} 원")
         m3.metric("남은 생활비", f"{amt_flex:,} 원", delta_color="normal")
         
         if amt_flex < 0:
-            st.error("⚠️ 설정한 예산이 월급을 초과했습니다! 지출이나 저축액을 조정하세요.")
+            st.error("⚠️ 설정한 예산이 월급을 초과했습니다! 고정 지출이나 투자 금액을 조정하세요.")
             
         st.markdown("---")
-        
-        # 3. 데이터 통합 및 시각화 (만 원 단위 직관적 표현)
-        st.markdown("#### 📊 5년 누적 손익 및 자산 성장 추이")
         
         years = np.arange(1, 6)
         results = []
@@ -444,29 +450,40 @@ with tab3:
             profit = fv - principal
             
             results.append({
-                "년차": f"{y}년",
-                "원금(만원)": principal / 10000,
-                "손익(만원)": profit / 10000
+                "년차": f"{y}년차",
+                "원금": principal,
+                "손익": profit
             })
 
         df_g = pd.DataFrame(results)
+        df_melt = df_g.melt(id_vars="년차", value_vars=["원금", "손익"], var_name="구분", value_name="금액")
         
-        # Plotly 누적 막대 그래프를 위해 데이터 형태 변환 (Melt)
-        df_melt = df_g.melt(id_vars="년차", value_vars=["원금(만원)", "손익(만원)"], var_name="구분", value_name="금액(만원)")
+        def format_kr_won(val):
+            sign = "-" if val < 0 else ""
+            val = abs(val)
+            if val >= 100000000:
+                uk = int(val // 100000000)
+                man = int((val % 100000000) // 10000)
+                if man > 0: return f"{sign}{uk}억{man}만"
+                return f"{sign}{uk}억"
+            else:
+                man = int(val // 10000)
+                return f"{sign}{man}만"
+
+        df_melt["금액_텍스트"] = df_melt["금액"].apply(format_kr_won)
+        df_melt["금액(만원)"] = df_melt["금액"] / 10000
         
-        # 🎨 마이너스는 파란색, 플러스는 빨간색, 원금은 회색 처리
-        profit_color = "#3498db" if ret_rate < 0 else "#e74c3c" 
-        color_map = {"원금(만원)": "#95a5a6", "손익(만원)": profit_color}
+        profit_color_chart = "#e74c3c" if ret_rate > 0 else ("#3498db" if ret_rate < 0 else "#95a5a6")
+        color_map = {"원금": "#7f8c8d", "손익": profit_color_chart}
 
         fig_g = px.bar(df_melt, x="년차", y="금액(만원)", color="구분",
-                       title=f"연 기대 수익률 {ret_rate}% 가정 시뮬레이션",
+                       title=f"📈 연 기대 수익률 {ret_rate}% 반영 5개년 자산 로드맵",
                        barmode="relative", 
-                       text_auto='.0f',
+                       text="금액_텍스트",
                        color_discrete_map=color_map)
                        
-        # y축과 텍스트가 "O만" 형태로 깔끔하게 보이도록 서식 적용
-        fig_g.update_traces(texttemplate='%{y:,.0f}만')
-        fig_g.update_layout(height=400, margin=dict(t=40, b=0, l=0, r=0), yaxis_title="금액 (만 원)")
+        fig_g.update_traces(textposition='inside', insidetextanchor='center')
+        fig_g.update_layout(height=380, margin=dict(t=40, b=0, l=0, r=0), yaxis_title="금액 (단위: 만 원)")
         st.plotly_chart(fig_g, use_container_width=True)
 
     with col_chat3:
