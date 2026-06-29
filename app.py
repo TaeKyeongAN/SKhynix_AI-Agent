@@ -8,9 +8,13 @@ import plotly.express as px
 import time
 
 # ----------------------------------------------------------------------
-# 1. 페이지 기본 설정
+# 1. 페이지 기본 설정 (Hy-Fi Agent 반영)
 # ----------------------------------------------------------------------
-st.set_page_config(page_title="SKHynix 성장 파트너", page_icon="🚀", layout="wide")
+st.set_page_config(
+    page_title="Hy-Fi Agent | 직장인 라이프 & 재무 최적화", 
+    page_icon="🚀", 
+    layout="wide"
+)
 
 # ----------------------------------------------------------------------
 # 2. API 키 설정 (Streamlit Secrets)
@@ -52,7 +56,7 @@ d_day_pay = (payday - today).days
 pay_str = f"D-{d_day_pay}" if d_day_pay > 0 else "D-Day (월급날! 💸)"
 
 # ----------------------------------------------------------------------
-# 4. 사이드바 구성 (프로필 및 전역 데이터)
+# 4. 사이드바 구성 (프로필 및 전역 데이터 - 컨디션 기능 삭제)
 # ----------------------------------------------------------------------
 with st.sidebar:
     st.header("🏢 SKHynix 성장 파트너")
@@ -62,15 +66,11 @@ with st.sidebar:
     st.markdown("### ⏳ D-Day\n")
     st.info(f"**입사일:** {join_str}\n\n**월급날:** {pay_str}")
     st.markdown("---")
-    
-    st.markdown("### 🌡️ 오늘의 컨디션")
-    condition = st.radio("현재 기분이 어떠신가요?", ["😀 최고예요!", "😐 그저 그래요", "😥 피곤해요"], horizontal=True)
-    st.markdown("---")
 
 # ----------------------------------------------------------------------
 # 5. 메인 화면 로직 (탭 기반 1기능-1채팅 레이아웃)
 # ----------------------------------------------------------------------
-st.title("🚀 SKHynix AI 성장 파트너 대시보드")
+st.title("🚀 Hy-Fi Agent: 내 손안의 AI 라이프 매니저")
 
 # 기능별로 4개의 탭 생성
 tab1, tab2, tab3, tab4 = st.tabs([
@@ -81,7 +81,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
 ])
 
 # ==========================================
-# 탭 1: 갓생 루틴 메이커 (타임블록) - AI 자동 비교 코멘트 추가
+# 탭 1: 갓생 루틴 메이커 (타임블록) 
 # ==========================================
 with tab1:
     col_vis1, col_chat1 = st.columns([6, 4])
@@ -149,7 +149,7 @@ with tab1:
                 fig_today.update_layout(height=350, margin=dict(t=50, b=0, l=0, r=0))
                 st.plotly_chart(fig_today, use_container_width=True)
         
-        # [NEW: 로직 기반 패턴 비교 분석 영역]
+        # [로직 기반 패턴 비교 분석 영역]
         st.markdown("---")
         st.markdown("#### 📊 패턴 비교 분석")
         
@@ -162,44 +162,38 @@ with tab1:
             
             comments = []
             
-            # 수면 시간 분석
             if diff_sleep <= -1.0:
                 comments.append("평소보다 **수면 시간이 부족**해 보여요. 컨디션 관리에 유의하세요! 🛌")
             elif diff_sleep >= 1.0:
                 comments.append("오늘은 평소보다 **수면을 넉넉히** 챙기셨네요. 에너지 충전하기 딱 좋은 날입니다! 🔋")
                 
-            # 업무 및 자기계발(생산성) 분석
             if (diff_work + diff_study) >= 1.5:
                 comments.append("평균보다 **업무와 자기계발에 투자하는 시간이 많습니다.** 열정도 좋지만 번아웃 조심하세요! 🔥")
             elif (diff_work + diff_study) <= -1.5:
                 comments.append("오늘은 평소보다 일/공부 부담을 좀 덜어내셨네요. **여유를 즐기는 것도 루틴의 일부**죠! ☕")
                 
-            # 일상/휴식 분석
             if rest_h < 4.0:
                 comments.append("식사나 이동을 제외하면 **온전한 휴식 시간이 꽤 부족**할 수 있어요. 짬 내서 꼭 스트레칭하세요! 🧘")
                 
-            # 밸런스가 좋은 경우
             if not comments:
                 comments.append("평소 패턴과 비슷하게 **안정적이고 균형 잡힌 하루**를 계획하셨네요. 훌륭한 루틴 유지입니다! 👏")
             
-            # 결과 출력
             final_comment = "\n\n".join(comments)
             st.success(final_comment)
                 
-    # [우측: 채팅 영역]
+    # [우측: 채팅 영역 - 컨디션 문구 삭제 반영]
     with col_chat1:
         st.subheader("💬 타임블록 맞춤 코칭")
         sys_prompt_1 = f"""
         너는 직장인을 위한 현실적이고 다정한 루틴 코치야.
-        현재 사용자의 컨디션은 '{condition}' 상태야.
         오늘 계획한 시간 배분: 수면 {sleep_h}시간, 업무 {work_h}시간, 자기계발 {study_h}시간, 일상/휴식 {rest_h:.1f}시간.
         
         [주의사항]
         여기서 '일상/휴식' 시간은 순수하게 노는 시간이 아니라 출퇴근, 식사, 가사 노동, 씻는 시간 등 필수적인 생활 시간이 모두 포함된 값이야.
         따라서 일상/휴식 시간이 길다고 해서 게으르다고 판단하거나 억지스러운 팩폭을 날려선 절대 안 돼.
-        이 점을 충분히 감안해서, 현재 컨디션과 시간 배분의 밸런스가 좋은지 분석해주고, 현실적으로 실천 가능한 조언이나 따뜻한 격려를 해줘.
+        이 점을 충분히 감안해서, 시간 배분의 밸런스가 좋은지 분석해주고, 현실적으로 실천 가능한 조언이나 따뜻한 격려를 해줘.
         """
-        greeting_1 = f"안녕하세요 안태경 님! 오늘 '{condition}' 상태시군요. 출퇴근과 식사 시간 등을 고려했을 때, 오늘의 루틴 밸런스가 어떤지 점검해 드릴까요?"
+        greeting_1 = "안녕하세요 안태경 님! 출퇴근과 식사 시간 등을 고려했을 때, 오늘 계획하신 루틴 밸런스가 어떤지 점검해 드릴까요?"
         
         if "messages_1" not in st.session_state:
             st.session_state.messages_1 = [{"role": "assistant", "content": greeting_1}]
@@ -221,7 +215,7 @@ with tab1:
                 st.session_state.messages_1.append({"role": "assistant", "content": response_1.text})
 
 # ==========================================
-# 탭 2: 감정-성취도 상관관계 분석 (로직 기반 자동 분석 코멘트 추가)
+# 탭 2: 감정-성취도 상관관계 분석 
 # ==========================================
 with tab2:
     col_vis2, col_chat2 = st.columns([6, 4])
@@ -229,7 +223,6 @@ with tab2:
     with col_vis2:
         st.subheader("🧠 감정-성취도 상관관계 분석")
         
-        # 1. 오늘의 데이터 입력 
         st.markdown("#### 📝 오늘의 기록")
         
         def format_cond(val):
@@ -254,7 +247,6 @@ with tab2:
         st.markdown("---")
         st.markdown("#### 📊 데이터 시각화 리포트")
         
-        # 2. 가상 데이터 생성 
         dates = pd.date_range(end=today - timedelta(days=1), periods=13) 
         df_mock = pd.DataFrame({
             "날짜": dates,
@@ -265,7 +257,6 @@ with tab2:
         })
         df_mock["일일_평균"] = df_mock[["아침", "점심", "저녁"]].mean(axis=1)
         
-        # 오늘 데이터를 통합
         df_today = pd.DataFrame({
             "날짜": [today], "아침": [cond_morning], "점심": [cond_afternoon], "저녁": [cond_evening],
             "성취도": [achievement_today], "일일_평균": [avg_cond_today]
@@ -275,7 +266,6 @@ with tab2:
         df_history["날짜"] = pd.to_datetime(df_history["날짜"])
         df_history["요일"] = df_history["날짜"].dt.strftime("%a")
         
-        # 🎨 가독성을 높인 뚜렷한 대비 색상 (블루 & 레드)
         chart_colors = {"일일_평균": "#3498db", "성취도": "#e74c3c"}
         
         chart_tab1, chart_tab2, chart_tab3 = st.tabs(["📈 종합 추이", "⏰ 시간대별 패턴", "📅 요일별 분석"])
@@ -304,12 +294,10 @@ with tab2:
             fig_day.update_layout(height=320, margin=dict(t=40, b=0, l=0, r=0))
             st.plotly_chart(fig_day, use_container_width=True)
             
-        # [NEW: 로직 기반 3종 데이터 인사이트 분석 영역]
         st.markdown("---")
         st.markdown("#### 💡 데이터 인사이트")
         
         if st.button("✨ 최근 2주 패턴 분석하기", key="analyze_tab2"):
-            # 1. 종합 추이 분석 로직
             avg_cond_14d = df_history["일일_평균"].mean()
             avg_ach_14d = df_history["성취도"].mean()
             
@@ -325,19 +313,15 @@ with tab2:
             elif diff_ach <= -10: trend_msg += "성취도는 다소 낮습니다. 무리하지 마세요. ☕"
             else: trend_msg += "성취도도 안정적으로 유지 중입니다. 👍"
             
-            # 2. 시간대별 분석 로직
             best_time = max(time_avg, key=time_avg.get)
             worst_time = min(time_avg, key=time_avg.get)
             time_msg = f"**2. 시간대별 패턴:** 주로 **'{best_time}'**에 에너지가 가장 높고, **'{worst_time}'**에 떨어지는 경향이 있습니다. 에너지가 필요한 중요한 업무는 가급적 {best_time}에 배치해 보세요! ⏰"
             
-            # 3. 요일별 분석 로직
             best_day = df_day.loc[df_day["성취도"].idxmax()]["요일"]
-            # 영어 요일을 한글로 변환
             day_kr_map = {"Mon": "월", "Tue": "화", "Wed": "수", "Thu": "목", "Fri": "금", "Sat": "토", "Sun": "일"}
             best_day_kr = day_kr_map.get(best_day, best_day)
             day_msg = f"**3. 요일별 분석:** 데이터를 보면 **{best_day_kr}요일**의 성취도가 가장 높게 나타납니다. {best_day_kr}요일의 좋은 루틴을 다른 날에도 적용해 보는 건 어떨까요? 📅"
             
-            # 종합 코멘트 출력
             st.success(f"{trend_msg}\n\n{time_msg}\n\n{day_msg}")
 
     with col_chat2:
@@ -378,7 +362,7 @@ with tab2:
                 st.session_state.messages_2.append({"role": "assistant", "content": response_2.text})
 
 # ==========================================
-# 탭 3: 월급 시뮬레이터 (전체 기능 통합 및 에러 수정 완료)
+# 탭 3: 월급 시뮬레이터 
 # ==========================================
 with tab3:
     col_vis3, col_chat3 = st.columns([6, 4])
@@ -416,10 +400,8 @@ with tab3:
         if amt_flex < 0:
             st.error("⚠️ 설정한 예산이 월급을 초과했습니다!")
         
-        # 탭 분리
         tab_basic, tab_bonus = st.tabs(["📊 5개년 자산 로드맵", "🚀 성과급 포함 시뮬레이션 (체험판)"])
         
-        # 공통 함수
         def format_kr_won(val):
             sign = "-" if val < 0 else ""
             val = abs(val)
@@ -429,9 +411,7 @@ with tab3:
                 return f"{sign}{uk}억{man}만" if man > 0 else f"{sign}{uk}억"
             return f"{sign}{int(val // 10000)}만"
 
-        # 1. 기본 로드맵
         with tab_basic:
-            # Popover로 계산 방식 정보 제공
             with st.popover("ℹ️ 손익 계산 방식 보기"):
                 st.write("**[계산 로직]**")
                 st.caption("매월 투자액이 월 복리로 계산됩니다.")
@@ -439,7 +419,7 @@ with tab3:
                 st.caption("- 손익: 미래가치(FV) - 원금")
                 st.caption("- 매달 적립되는 금액은 운용 기간에 따라 이자가 다르게 적용됩니다.")
             
-            years = np.arange(1, 6) # [해결] 여기서 years를 명확히 정의
+            years = np.arange(1, 6) 
             results = []
             for y in years:
                 months = y * 12
@@ -458,9 +438,7 @@ with tab3:
             fig_g.update_layout(height=450, uniformtext_minsize=11, uniformtext_mode='show')
             st.plotly_chart(fig_g, use_container_width=True)
 
-        # 2. 성과급 포함 체험판 탭 (세후 실수령액 기준 현실화)
         with tab_bonus:
-            # Popover로 성과급 계산 방식 정보 제공
             with st.popover("ℹ️ 성과급 계산 방식 보기"):
                 st.write("**[SK하이닉스 보상 구조]**")
                 st.caption("- 기본급: 연봉(월 실수령액 375만×12) / 20")
@@ -469,11 +447,8 @@ with tab3:
                 st.caption("- 세후 반영: 추정 세율 38% 공제 후 적용")
             
             results_b = []
-            # 하이닉스 기준: 기본급(연봉/20) + PI(200%) + PS(1000% 가정)
             annual_base = net_salary * 12
-            total_bonus_before_tax = (annual_base / 20) * 12 # PI(2) + PS(10) = 1200%
-            
-            # [세후 계산 로직] 누진세율 약 35%~40% 구간 감안하여 약 60%만 세후로 산정
+            total_bonus_before_tax = (annual_base / 20) * 12 
             tax_rate = 0.38 
             total_bonus_after_tax = total_bonus_before_tax * (1 - tax_rate)
             
@@ -481,7 +456,7 @@ with tab3:
                 months = y * 12
                 fv = 0
                 for m in range(months): fv = (fv + amt_save) * (1 + (ret_rate/100)/12)
-                fv += total_bonus_after_tax * y # 세후 성과급 누적
+                fv += total_bonus_after_tax * y 
                 
                 results_b.append({
                     "년차": f"{y}년차", 
@@ -501,7 +476,6 @@ with tab3:
             fig_b.update_layout(height=450, uniformtext_minsize=11, uniformtext_mode='show')
             st.plotly_chart(fig_b, use_container_width=True)
     
-    # 오른쪽 AI 채팅창 영역
     with col_chat3:
         st.subheader("💬 재무 상담가 코멘트")
         sys_prompt_3 = f"""
@@ -532,14 +506,13 @@ with tab3:
                 st.session_state.messages_3.append({"role": "assistant", "content": response_3.text})
 
 # ==========================================
-# 탭 4: 소비 패턴 분석 및 팩폭 컨설팅 (스마트 브리핑 로직 적용)
+# 탭 4: 소비 패턴 분석 
 # ==========================================
 import plotly.graph_objects as go
 
 with tab4:
     col_vis4, col_chat4 = st.columns([6, 4])
     
-    # 1. 1월~12월 세션 데이터 초기화
     categories = ["고정지출", "식비", "교통비", "쇼핑/생활", "문화/여가", "건강/미용"]
     if "monthly_expenses" not in st.session_state:
         st.session_state.monthly_expenses = {
@@ -573,7 +546,6 @@ with tab4:
             
         st.write("")
         
-        # 전체 월 합계 계산
         monthly_totals = [sum(st.session_state.monthly_expenses[m]) for m in months_list]
         df_trend = pd.DataFrame({"월": months_list, "지출액": monthly_totals})
         
@@ -611,7 +583,6 @@ with tab4:
                 
         st.markdown("---")
         
-        # 🔥 스마트 브리핑 및 폭포수 차트
         curr_idx = months_list.index(selected_month)
         if curr_idx > 0:
             prev_month = months_list[curr_idx - 1]
@@ -628,12 +599,11 @@ with tab4:
                 for i, cat in enumerate(categories):
                     curr_val = st.session_state.monthly_expenses[selected_month][i]
                     prev_val = st.session_state.monthly_expenses[prev_month][i]
-                    diff_val = (curr_val - prev_val) / 10000 # 만 원 단위
+                    diff_val = (curr_val - prev_val) / 10000 
                     diffs.append(diff_val)
                     if diff_val != 0:
                         diff_dict[cat] = diff_val
                 
-                # [개선] 총지출 기준 스마트 브리핑 로직
                 total_diff_man = (curr_total - prev_total) / 10000
                 
                 if total_diff_man > 0:
@@ -656,7 +626,6 @@ with tab4:
                 else:
                     st.info("⚖️ 전체 지출 금액이 전월과 정확히 동일합니다.")
                 
-                # 폭포수 차트 그리기
                 x_labels = [f"{prev_month} 총지출"] + categories + [f"{selected_month} 총지출"]
                 measure_list = ["absolute"] + ["relative"] * len(categories) + ["total"]
                 y_values = [prev_total/10000] + diffs + [curr_total/10000]
@@ -686,7 +655,6 @@ with tab4:
             st.markdown("##### 📈 지출 증감 원인 분석")
             st.info("1월은 이전 데이터가 없어 증감 비교를 제공하지 않습니다.")
 
-    # 4. 오른쪽 AI 팩폭 채팅창 영역
     with col_chat4:
         st.subheader("💬 지출 팩폭 상담가")
         
