@@ -81,7 +81,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
 ])
 
 # ==========================================
-# 탭 1: 갓생 루틴 메이커 (타임블록)
+# 탭 1: 갓생 루틴 메이커 (타임블록) - 수정본
 # ==========================================
 with tab1:
     col_vis1, col_chat1 = st.columns([6, 4])
@@ -91,6 +91,7 @@ with tab1:
         color_map = {'수면': '#3498db', '업무': '#e74c3c', '자기계발': '#f1c40f', '휴식': '#2ecc71'}
         col_left, col_right = st.columns(2)
         
+        # [왼쪽: 통계 분석]
         with col_left:
             st.markdown("#### 📉 통계 분석")
             period = st.selectbox("기간 단위", ["요일별", "월별"], key="stat_period")
@@ -118,19 +119,23 @@ with tab1:
             fig_stat.update_layout(height=350, margin=dict(t=50, b=0, l=0, r=0))
             st.plotly_chart(fig_stat, use_container_width=True)
 
+        # [오른쪽: 오늘의 계획]
         with col_right:
             st.markdown("#### 📅 오늘의 계획")
+            
+            # 1. 원래 슬라이더가 있던 자리에 현재 날짜 및 요일 정보 노출
+            weekday_kr = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"][today.weekday()]
+            st.info(f"📅 **현재 날짜:** {today.strftime('%Y년 %m월 %d일')} ({weekday_kr})")
+            
+            # 2. 시간 설정 슬라이더 칸을 한 칸 아래로 이동
             c1, c2, c3 = st.columns(3)
             with c1: sleep_h = st.slider("수면", 0.0, 24.0, 7.0, 0.5, key="sl1")
             with c2: work_h = st.slider("업무", 0.0, 24.0, 9.0, 0.5, key="wk1")
             with c3: study_h = st.slider("자기계발", 0.0, 24.0, 2.0, 0.5, key="st1")
             rest_h = 24.0 - (sleep_h + work_h + study_h)
             
+            # 3. 우측에 위젯이 늘어나면서 세로 균형이 맞춰졌으므로 여백 미세 조정
             st.write("") 
-            st.write("")
-            st.write("")
-            st.write("")
-            st.write("")
                         
             if rest_h < 0:
                 st.error("시간 합계 초과!")
