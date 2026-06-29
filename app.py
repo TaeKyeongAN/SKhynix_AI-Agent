@@ -378,125 +378,94 @@ with tab2:
                 st.session_state.messages_2.append({"role": "assistant", "content": response_2.text})
 
 # ==========================================
-# 탭 3: 월급 시뮬레이터 (감정 슬라이더 방식 적용 및 순정 UI 복구)
+# 탭 3: 월급 시뮬레이터 (기본 로드맵 & 성과급 포함 체험판 탭 분리)
 # ==========================================
 with tab3:
     col_vis3, col_chat3 = st.columns([6, 4])
     
     with col_vis3:
-        # 공간 초압축: 한 줄로 타이틀과 실수령액 안내 결합
-        st.markdown("### 📈 월급 시뮬레이터 <span style='font-size:16px; color:gray; font-weight:normal; margin-left:15px;'>예상 월 세후 실수령액: <b>3,750,000원</b> (원 단위 예산 설정)</span>", unsafe_allow_html=True)
+        st.markdown("### 📈 월급 시뮬레이터 <span style='font-size:16px; color:gray; font-weight:normal; margin-left:15px;'>예상 월 세후 실수령액: <b>3,750,000원</b></span>", unsafe_allow_html=True)
         net_salary = 3750000 
         
-        # 1. 고정 지출 리스트 (expander로 숨겨서 세로 공간 확보)
         with st.expander("🏠 고정 지출 상세 내역 (정기 결제 항목 보기/편집)", expanded=False):
             fixed_expenses_data = pd.DataFrame([
-                {"항목": "휴대폰 기기 + 통신", "금액": 105000},
-                {"항목": "구글 AI Pro", "금액": 29000},
-                {"항목": "유튜브 프리미엄", "금액": 15000},
-                {"항목": "넷플릭스", "금액": 13500},
-                {"항목": "카카오톡", "금액": 6000},
-                {"항목": "티빙", "금액": 5500}
+                {"항목": "휴대폰 기기 + 통신", "금액": 105000}, {"항목": "구글 AI Pro", "금액": 29000},
+                {"항목": "유튜브 프리미엄", "금액": 15000}, {"항목": "넷플릭스", "금액": 13500},
+                {"항목": "카카오톡", "금액": 6000}, {"항목": "티빙", "금액": 5500}
             ])
             edited_fixed = st.data_editor(fixed_expenses_data, num_rows="dynamic", use_container_width=True)
         
         total_fixed = edited_fixed["금액"].sum()
         
-        st.write("")
         c1, c2 = st.columns(2)
         with c1:
             amt_save = st.number_input("💰 저축/투자 금액 (원)", min_value=0, max_value=net_salary, value=1500000, step=100000, key="num_save_3")
         with c2:
-            # ✨ [핵심 수정] 탭 2의 감정 슬라이더처럼 select_slider와 format_func 적용
-            rate_options = [round(x * 0.5, 1) for x in range(-40, 41)] # -20.0 ~ 20.0 범위 (0.5 단위)
-            
+            rate_options = [round(x * 0.5, 1) for x in range(-40, 41)]
             def format_rate(val):
                 if val == -20.0: return f"😈 {val}%"
                 elif val == 20.0: return f"😇 +{val}%"
                 elif val > 0: return f"+{val}%"
                 else: return f"{val}%"
-                
-            ret_rate = st.select_slider(
-                "📊 수익률 시뮬레이션", 
-                options=rate_options, 
-                value=4.0, 
-                format_func=format_rate,
-                key="slide_rate_3"
-            )
+            ret_rate = st.select_slider("📊 수익률 시뮬레이션", options=rate_options, value=4.0, format_func=format_rate, key="slide_rate_3")
             
-        # 남은 잔액 계산
         amt_flex = net_salary - total_fixed - amt_save
         
-        # 요약 메트릭 배치
-        st.write("")
-        m1, m2, m3 = st.columns(3)
-        m1.metric("월 투자액", f"{amt_save:,} 원")
-        m2.metric("고정 지출 합계", f"{total_fixed:,} 원")
-        m3.metric("남은 생활비", f"{amt_flex:,} 원", delta_color="normal")
+        # [신규 추가] 탭 분리 적용
+        tab_basic, tab_bonus = st.tabs(["📊 5개년 자산 로드맵", "🚀 성과급 포함 시뮬레이션 (체험판)"])
         
-        if amt_flex < 0:
-            st.error("⚠️ 설정한 예산이 월급을 초과했습니다! 고정 지출이나 투자 금액을 조정하세요.")
-            
-        st.markdown("---")
-        
-        # 3. 데이터 계산 및 한글 단위 변환 플로팅 로직
-        years = np.arange(1, 6)
-        results = []
-        for y in years:
-            months = y * 12
-            fv = 0
-            for m in range(months): 
-                fv = (fv + amt_save) * (1 + (ret_rate/100)/12)
-            
-            principal = amt_save * months
-            profit = fv - principal
-            
-            results.append({
-                "년차": f"{y}년차",
-                "원금": principal,
-                "손익": profit
-            })
-
-        df_g = pd.DataFrame(results)
-        df_melt = df_g.melt(id_vars="년차", value_vars=["원금", "손익"], var_name="구분", value_name="금액")
-        
+        # 텍스트 변환 함수 (공통)
         def format_kr_won(val):
             sign = "-" if val < 0 else ""
             val = abs(val)
             if val >= 100000000:
                 uk = int(val // 100000000)
                 man = int((val % 100000000) // 10000)
-                if man > 0: return f"{sign}{uk}억{man}만"
-                return f"{sign}{uk}억"
-            else:
-                man = int(val // 10000)
-                return f"{sign}{man}만"
+                return f"{sign}{uk}억{man}만" if man > 0 else f"{sign}{uk}억"
+            return f"{sign}{int(val // 10000)}만"
 
-        df_melt["금액_텍스트"] = df_melt["금액"].apply(format_kr_won)
-        df_melt["금액(만원)"] = df_melt["금액"] / 10000
-        
-        # 차트 막대 색상은 기존 다이내믹 로직 유지 (플러스=레드, 마이너스=블루, 0.0=그레이)
-        profit_color_chart = "#e74c3c" if ret_rate > 0 else ("#3498db" if ret_rate < 0 else "#95a5a6")
-        color_map = {"원금": "#7f8c8d", "손익": profit_color_chart}
+        # 1. 기본 로드맵 탭
+        with tab_basic:
+            years = np.arange(1, 6)
+            results = []
+            for y in years:
+                months = y * 12
+                fv = 0
+                for m in range(months): fv = (fv + amt_save) * (1 + (ret_rate/100)/12)
+                results.append({"년차": f"{y}년차", "원금": amt_save * months, "손익": fv - (amt_save * months)})
+            
+            df_melt = pd.DataFrame(results).melt(id_vars="년차", value_vars=["원금", "손익"], var_name="구분", value_name="금액")
+            df_melt["금액_텍스트"] = df_melt["금액"].apply(format_kr_won)
+            
+            fig_g = px.bar(df_melt, x="년차", y=df_melt["금액"]/10000, color="구분",
+                           title=f"📈 연 기대 수익률 {ret_rate}% 반영 5개년 자산 로드맵",
+                           barmode="relative", text="금액_텍스트",
+                           color_discrete_map={"원금": "#7f8c8d", "손익": ("#e74c3c" if ret_rate > 0 else "#3498db")})
+            fig_g.update_traces(textposition='auto')
+            fig_g.update_layout(height=350, uniformtext_minsize=11, uniformtext_mode='show')
+            st.plotly_chart(fig_g, use_container_width=True)
 
-        fig_g = px.bar(df_melt, x="년차", y="금액(만원)", color="구분",
-                       title=f"📈 연 기대 수익률 {ret_rate}% 반영 5개년 자산 로드맵",
-                       barmode="relative", 
-                       text="금액_텍스트",
-                       color_discrete_map=color_map)
-                       
-        # 1. 텍스트 위치를 'auto'로 두어 좁으면 막대 밖으로 빼도록 허용
-        fig_g.update_traces(textposition='auto')
-        
-        # 2. 텍스트 최소 크기를 고정(11px)하고 무조건 표시(show)하도록 강제 설정
-        fig_g.update_layout(
-            height=380, 
-            margin=dict(t=40, b=0, l=0, r=0), 
-            yaxis_title="금액 (단위: 만 원)",
-            uniformtext_minsize=11,   # 글씨 크기가 이 이하로 작아지지 않음
-            uniformtext_mode='show'   # 좁아도 글씨를 숨기지 않고 강제 표시
-        )
-        st.plotly_chart(fig_g, use_container_width=True)
+        # 2. 성과급 포함 체험판 탭
+        with tab_bonus:
+            results_b = []
+            for y in years:
+                bonus = (net_salary / 20) * 8 # 800% 성과급 예시
+                months = y * 12
+                fv = 0
+                for m in range(months): fv = (fv + amt_save) * (1 + (ret_rate/100)/12)
+                fv += bonus * y 
+                results_b.append({"년차": f"{y}년차", "원금": amt_save * months, "성과급": bonus * y, "손익": fv - (amt_save * months + bonus * y)})
+            
+            df_b = pd.DataFrame(results_b).melt(id_vars="년차", value_vars=["원금", "성과급", "손익"], var_name="구분", value_name="금액")
+            df_b["금액_텍스트"] = df_b["금액"].apply(format_kr_won)
+            
+            fig_b = px.bar(df_b, x="년차", y=df_b["금액"]/10000, color="구분",
+                           title=f"🚀 연봉+성과급 반영 5개년 로드맵",
+                           barmode="relative", text="금액_텍스트",
+                           color_discrete_map={"원금": "#7f8c8d", "성과급": "#ffcc99", "손익": ("#e74c3c" if ret_rate > 0 else "#3498db")})
+            fig_b.update_traces(textposition='auto')
+            fig_b.update_layout(height=350, uniformtext_minsize=11, uniformtext_mode='show')
+            st.plotly_chart(fig_b, use_container_width=True)
 
     # 오른쪽 AI 채팅창 영역
     with col_chat3:
