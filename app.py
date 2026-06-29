@@ -378,7 +378,7 @@ with tab2:
                 st.session_state.messages_2.append({"role": "assistant", "content": response_2.text})
 
 # ==========================================
-# 탭 3: 월급 시뮬레이터 (슬라이더 기본 복구 및 이모지 하단 배치 완료)
+# 탭 3: 월급 시뮬레이터 (감정 슬라이더 방식 적용 및 순정 UI 복구)
 # ==========================================
 with tab3:
     col_vis3, col_chat3 = st.columns([6, 4])
@@ -402,22 +402,27 @@ with tab3:
         
         total_fixed = edited_fixed["금액"].sum()
         
-        # 2. 투자/저축액(10만원 단위) 및 수익률 설정
         st.write("")
         c1, c2 = st.columns(2)
         with c1:
-            # 조절 단위를 10만 원(100,000)으로 설정
             amt_save = st.number_input("💰 저축/투자 금액 (원)", min_value=0, max_value=net_salary, value=1500000, step=100000, key="num_save_3")
         with c2:
-            # 슬라이더 스타일은 기본 상태로 복구하고 제목은 깔끔하게 수정
-            ret_rate = st.slider("📊 수익률 시뮬레이션 (%)", -20.0, 20.0, 4.0, 0.5, key="slide_rate_3")
+            # ✨ [핵심 수정] 탭 2의 감정 슬라이더처럼 select_slider와 format_func 적용
+            rate_options = [round(x * 0.5, 1) for x in range(-40, 41)] # -20.0 ~ 20.0 범위 (0.5 단위)
             
-            # ✨ [핵심 수정] 슬라이더 막대 바로 아래 양 끝에 숫자와 이모티콘 배치
-            slider_label_cols = st.columns([1, 1])
-            with slider_label_cols[0]:
-                st.markdown("<div style='text-align: left; font-size: 13px;'>😈 -20%</div>", unsafe_allow_html=True)
-            with slider_label_cols[1]:
-                st.markdown("<div style='text-align: right; font-size: 13px;'>+20% 😇</div>", unsafe_allow_html=True)
+            def format_rate(val):
+                if val == -20.0: return f"😈 {val}%"
+                elif val == 20.0: return f"😇 +{val}%"
+                elif val > 0: return f"+{val}%"
+                else: return f"{val}%"
+                
+            ret_rate = st.select_slider(
+                "📊 수익률 시뮬레이션", 
+                options=rate_options, 
+                value=4.0, 
+                format_func=format_rate,
+                key="slide_rate_3"
+            )
             
         # 남은 잔액 계산
         amt_flex = net_salary - total_fixed - amt_save
