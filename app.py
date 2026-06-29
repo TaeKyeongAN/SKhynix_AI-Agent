@@ -378,43 +378,58 @@ with tab2:
                 st.session_state.messages_2.append({"role": "assistant", "content": response_2.text})
 
 # ==========================================
-# 탭 3: 첫 월급 황금비율 시뮬레이터 (1% 단위 & 항목 세분화)
+# 탭 3: 월급 시뮬레이터 (원 단위 & 고정지출 상세 관리)
 # ==========================================
 with tab3:
     col_vis3, col_chat3 = st.columns([6, 4])
     
     with col_vis3:
-        st.subheader("📈 첫 월급 황금비율 시뮬레이터")
+        st.subheader("📈 월급 시뮬레이터")
         net_salary = 3750000 
         st.markdown(f"### 💵 예상 월 세후 실수령액: `3,750,000원`")
         
-        st.markdown("#### 🛠️ 상세 예산 포트폴리오")
+        st.markdown("---")
+        st.markdown("#### 🛠️ 월 예산 설정 (원 단위)")
         
-        # 5개 카테고리로 세분화 (합계 100% 제한 로직)
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            save_ratio = st.slider("💰 저축/투자 (%)", 0, 100, 40, 1, key="r1")
-            dev_ratio = st.slider("📚 자기계발 (%)", 0, 100-save_ratio, 10, 1, key="r2")
-        with c2:
-            fixed_ratio = st.slider("🏠 고정 지출 (%)", 0, 100-save_ratio-dev_ratio, 20, 1, key="r3")
-            emerg_ratio = st.slider("🚨 비상금 (%)", 0, 100-save_ratio-dev_ratio-fixed_ratio, 10, 1, key="r4")
-        with c3:
-            flex_ratio = 100 - (save_ratio + dev_ratio + fixed_ratio + emerg_ratio)
-            st.metric("🛒 생활비(자동)", f"{flex_ratio}%")
-            # 투자 수익률 조절
-            ret_rate = st.slider("📊 연 기대 수익률 (%)", 0.0, 10.0, 4.0, 0.1, key="rate")
-
-        # 금액 계산
-        amt_save = net_salary * (save_ratio / 100)
-        amt_dev = net_salary * (dev_ratio / 100)
-        amt_fixed = net_salary * (fixed_ratio / 100)
-        amt_emerg = net_salary * (emerg_ratio / 100)
-        amt_flex = net_salary * (flex_ratio / 100)
+        # 1. 고정 지출 리스트 관리
+        st.markdown("#### 🏠 고정 지출 상세 (정기 결제)")
+        # 데이터프레임으로 고정 지출 관리
+        fixed_expenses_data = pd.DataFrame([
+            {"항목": "카카오톡", "금액": 6000},
+            {"항목": "유튜브 프리미엄", "금액": 15000},
+            {"항목": "티빙", "금액": 5000},
+            {"항목": "휴대폰 요금", "금액": 105000},
+            {"항목": "구글+제미나이", "금액": 29000}
+        ])
+        
+        # 사용자가 리스트 수정 가능
+        edited_fixed = st.data_editor(fixed_expenses_data, num_rows="dynamic", use_container_width=True)
+        total_fixed = edited_fixed["금액"].sum()
         
         st.write("")
-        st.info(f"선택한 예산 합계: {save_ratio + dev_ratio + fixed_ratio + emerg_ratio + flex_ratio}%")
+        # 2. 저축/투자 및 생활비 설정
+        c1, c2 = st.columns(2)
+        with c1:
+            amt_save = st.number_input("💰 저축/투자 금액 (원)", min_value=0, max_value=net_salary, value=1500000, step=10000)
+        with c2:
+            ret_rate = st.slider("📊 연 기대 수익률 (%)", 0.0, 10.0, 4.0, 0.1)
+            
+        # 잔액 계산
+        amt_flex = net_salary - total_fixed - amt_save
         
-        # 미래 자산 시뮬레이션 (연 복리 적용)
+        st.write("")
+        m1, m2, m3 = st.columns(3)
+        m1.metric("저축/투자", f"{amt_save:,} 원")
+        m2.metric("고정 지출", f"{total_fixed:,} 원")
+        m3.metric("남은 생활비", f"{amt_flex:,} 원", delta_color="normal")
+        
+        if amt_flex < 0:
+            st.error("⚠️ 설정한 예산이 월급을 초과했습니다! 지출이나 저축액을 조정하세요.")
+            
+        st.markdown("---")
+        st.markdown("#### 📊 자산 성장 시뮬레이션")
+        
+        # 미래 자산 계산
         years = [1, 3, 5]
         accumulated = []
         for y in years:
@@ -423,25 +438,24 @@ with tab3:
             for m in range(months): total = (total + amt_save) * (1 + (ret_rate/100) / 12)
             accumulated.append(total)
             
-        st.markdown("#### 📊 시각화 리포트")
-        sub1, sub2 = st.tabs(["📊 예산 비중", "💰 미래 자산 성장"])
-        with sub1:
-            df_pie = pd.DataFrame({"항목": ["저축/투자", "자기계발", "고정 지출", "비상금", "생활비"], 
-                                   "금액": [amt_save, amt_dev, amt_fixed, amt_emerg, amt_flex]})
-            fig = px.pie(df_pie, values="금액", names="항목", color="항목", hole=0.3)
-            fig.update_layout(height=300, margin=dict(t=0, b=0, l=0, r=0))
-            st.plotly_chart(fig, use_container_width=True)
-        with sub2:
-            df_g = pd.DataFrame({"기간": ["1년 뒤", "3년 뒤", "5년 뒤"], "자산(원)": accumulated})
-            fig_g = px.bar(df_g, x="기간", y="자산(원)", text_auto='.2s')
-            st.plotly_chart(fig_g, use_container_width=True)
+        df_g = pd.DataFrame({"기간": ["1년 뒤", "3년 뒤", "5년 뒤"], "자산(원)": accumulated})
+        fig_g = px.bar(df_g, x="기간", y="자산(원)", text_auto='.2s', title="저축 지속 시 목돈 마련 추이")
+        st.plotly_chart(fig_g, use_container_width=True)
 
     with col_chat3:
         st.subheader("💬 재무 상담가 코멘트")
-        sys_prompt_3 = f"너는 재무 전문가야. 사용자가 월급 375만원으로 저축{save_ratio}%, 자기계발{dev_ratio}%, 고정비{fixed_ratio}%, 비상금{emerg_ratio}%, 생활비{flex_ratio}%를 배정했어. 수익률{ret_rate}% 가정 하에 이 포트폴리오를 평가하고 조언해줘."
+        sys_prompt_3 = f"""
+        너는 재무 전문가야. 사용자의 월 세후 실수령액은 375만원이야.
+        - 고정 지출 합계: {total_fixed}원
+        - 저축액: {amt_save}원
+        - 남은 생활비: {amt_flex}원
+        - 기대 수익률: {ret_rate}%
         
+        이 예산을 기반으로, 고정 지출 중 줄일 수 있는 부분은 없는지, 
+        남은 생활비로 한 달을 버티기에 적절한지 냉정하게 평가하고 팩트 폭격형 조언을 해줘.
+        """
         if "messages_3" not in st.session_state:
-            st.session_state.messages_3 = [{"role": "assistant", "content": "예산 배정을 완료하셨군요! 전문가의 관점에서 포트폴리오를 진단해 드릴까요?"}]
+            st.session_state.messages_3 = [{"role": "assistant", "content": "세후 375만 원의 첫 월급, 고정 지출까지 꼼꼼히 반영해서 재무 설계를 시작해 볼까요?"}]
             
         chat_container_3 = st.container(height=550)
         with chat_container_3:
