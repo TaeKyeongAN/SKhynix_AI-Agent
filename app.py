@@ -532,23 +532,23 @@ with tab3:
                 st.session_state.messages_3.append({"role": "assistant", "content": response_3.text})
 
 # ==========================================
-# 탭 4: 소비 패턴 분석 및 팩폭 컨설팅 (스마트 브리핑 로직 적용)
+# 탭 4: 소비 패턴 분석 및 팩폭 컨설팅 (지출 규모 현실 상향 버전)
 # ==========================================
 import plotly.graph_objects as go
 
 with tab4:
     col_vis4, col_chat4 = st.columns([6, 4])
     
-    # 1. 1월~12월 세션 데이터 초기화
+    # 1. 1월~12월 세션 데이터 초기화 (전반적인 지출 상향 및 v3로 캐시 초기화)
     categories = ["고정지출", "식비", "교통비", "쇼핑/생활", "문화/여가", "건강/미용"]
-    if "monthly_expenses" not in st.session_state:
-        st.session_state.monthly_expenses = {
-            "1월": [174000, 845200, 125400, 452300, 215000, 85400],
-            "2월": [174000, 712500, 110500, 310500, 150000, 65000],
-            "3월": [174000, 550300, 95000, 185200, 120500, 45000],
-            "4월": [174000, 520100, 98000, 150400, 95000, 40000],
-            "5월": [174000, 680500, 130200, 380500, 175000, 95500],
-            "6월": [174000, 920500, 145800, 620500, 280000, 110500],
+    if "monthly_expenses_v3" not in st.session_state:
+        st.session_state.monthly_expenses_v3 = {
+            "1월": [174000, 1052000, 165400, 652300, 255000, 115400], # 총 241만
+            "2월": [174000, 852500, 140500, 420500, 160000, 75000],   # 총 182만
+            "3월": [174000, 650300, 115000, 285200, 130500, 55000],   # 총 141만
+            "4월": [174000, 620100, 108000, 250400, 115000, 50000],   # 총 131만
+            "5월": [174000, 880500, 150200, 480500, 195000, 105500],  # 총 198만
+            "6월": [174000, 1150500, 185800, 850500, 320000, 150500], # 총 283만
             "7월": [0, 0, 0, 0, 0, 0],
             "8월": [0, 0, 0, 0, 0, 0],
             "9월": [0, 0, 0, 0, 0, 0],
@@ -566,15 +566,15 @@ with tab4:
         with st.expander(f"✍️ {selected_month} 지출 내역 편집 (항목 변경 시 실시간 반영)", expanded=False):
             df_current = pd.DataFrame({
                 "카테고리": categories,
-                "금액": st.session_state.monthly_expenses[selected_month]
+                "금액": st.session_state.monthly_expenses_v3[selected_month]
             })
-            edited_df = st.data_editor(df_current, use_container_width=True, key=f"editor_{selected_month}")
-            st.session_state.monthly_expenses[selected_month] = edited_df["금액"].tolist()
+            edited_df = st.data_editor(df_current, use_container_width=True, key=f"editor_{selected_month}_v3")
+            st.session_state.monthly_expenses_v3[selected_month] = edited_df["금액"].tolist()
             
         st.write("")
         
         # 전체 월 합계 계산
-        monthly_totals = [sum(st.session_state.monthly_expenses[m]) for m in months_list]
+        monthly_totals = [sum(st.session_state.monthly_expenses_v3[m]) for m in months_list]
         df_trend = pd.DataFrame({"월": months_list, "지출액": monthly_totals})
         
         df_trend_filtered = df_trend[df_trend["지출액"] > 0].copy()
@@ -611,14 +611,14 @@ with tab4:
                 
         st.markdown("---")
         
-        # 🔥 스마트 브리핑 및 폭포수 차트
+        # 스마트 브리핑 및 폭포수 차트
         curr_idx = months_list.index(selected_month)
         if curr_idx > 0:
             prev_month = months_list[curr_idx - 1]
             st.markdown(f"##### 📈 지출 증감 원인 분석 ({prev_month} ➔ {selected_month})")
             
-            prev_total = sum(st.session_state.monthly_expenses[prev_month])
-            curr_total = sum(st.session_state.monthly_expenses[selected_month])
+            prev_total = sum(st.session_state.monthly_expenses_v3[prev_month])
+            curr_total = sum(st.session_state.monthly_expenses_v3[selected_month])
             
             if curr_total == 0 and prev_total == 0:
                 st.info("비교할 지출 데이터가 없습니다.")
@@ -626,14 +626,13 @@ with tab4:
                 diffs = []
                 diff_dict = {}
                 for i, cat in enumerate(categories):
-                    curr_val = st.session_state.monthly_expenses[selected_month][i]
-                    prev_val = st.session_state.monthly_expenses[prev_month][i]
-                    diff_val = (curr_val - prev_val) / 10000 # 만 원 단위
+                    curr_val = st.session_state.monthly_expenses_v3[selected_month][i]
+                    prev_val = st.session_state.monthly_expenses_v3[prev_month][i]
+                    diff_val = (curr_val - prev_val) / 10000 
                     diffs.append(diff_val)
                     if diff_val != 0:
                         diff_dict[cat] = diff_val
                 
-                # [개선] 총지출 기준 스마트 브리핑 로직
                 total_diff_man = (curr_total - prev_total) / 10000
                 
                 if total_diff_man > 0:
@@ -656,7 +655,6 @@ with tab4:
                 else:
                     st.info("⚖️ 전체 지출 금액이 전월과 정확히 동일합니다.")
                 
-                # 폭포수 차트 그리기
                 x_labels = [f"{prev_month} 총지출"] + categories + [f"{selected_month} 총지출"]
                 measure_list = ["absolute"] + ["relative"] * len(categories) + ["total"]
                 y_values = [prev_total/10000] + diffs + [curr_total/10000]
@@ -700,7 +698,7 @@ with tab4:
             
         sys_prompt_4 = f"너는 지출 내역을 보고 팩트 폭격을 날려주는 깐깐한 상담가야. 사용자가 {selected_month}에 '{max_expense}' 카테고리에 가장 많은 돈을 썼어. (만약 '지출 없음'이라면 예산 계획을 세워줘) 정신 차리게 해주고 내일 당장 실천할 구체적인 절약 미션을 던져줘."
         
-        chat_key = f"messages_4_{selected_month}"
+        chat_key = f"messages_4_v3_{selected_month}"
         if chat_key not in st.session_state:
             st.session_state[chat_key] = [{"role": "assistant", "content": greeting_4}]
             
@@ -710,7 +708,7 @@ with tab4:
                 with st.chat_message(msg["role"]):
                     st.write(msg["content"])
                     
-        user_input_4 = st.chat_input(f"{selected_month} 지출 관리에 대해 질문하기...", key=f"chat_in_4_{selected_month}")
+        user_input_4 = st.chat_input(f"{selected_month} 지출 관리에 대해 질문하기...", key=f"chat_in_4_v3_{selected_month}")
         if user_input_4:
             with chat_container_4:
                 with st.chat_message("user"): st.write(user_input_4)
