@@ -221,7 +221,7 @@ with tab1:
                 st.session_state.messages_1.append({"role": "assistant", "content": response_1.text})
 
 # ==========================================
-# 탭 2: 감정-성취도 상관관계 분석 (심화 버전)
+# 탭 2: 감정-성취도 상관관계 분석 (레이아웃 압축 & 하이닉스 컬러 반영)
 # ==========================================
 with tab2:
     col_vis2, col_chat2 = st.columns([6, 4])
@@ -229,9 +229,8 @@ with tab2:
     with col_vis2:
         st.subheader("🧠 감정-성취도 상관관계 분석")
         
-        # 1. 오늘의 데이터 입력 (UI 개선)
+        # 1. 오늘의 데이터 입력 (help 툴팁 활용으로 세로 공간 획기적 절약)
         st.markdown("#### 📝 오늘의 기록")
-        st.caption("0(😥 피곤해요) ~ 50(😐 그저 그래요) ~ 100(😀 최고예요)")
         
         # 0, 50, 100에만 이모지가 표시되도록 포맷팅
         def format_cond(val):
@@ -240,15 +239,18 @@ with tab2:
             elif val == 100: return "😀 100"
             return str(val)
 
+        # 툴팁에 들어갈 문구 설정
+        cond_help_text = "0(😥 피곤해요) ~ 50(😐 그저 그래요) ~ 100(😀 최고예요)"
+        
         c1, c2, c3 = st.columns(3)
-        with c1: cond_morning = st.select_slider("아침", options=range(0, 101, 10), value=50, format_func=format_cond, key="cm")
-        with c2: cond_afternoon = st.select_slider("점심", options=range(0, 101, 10), value=70, format_func=format_cond, key="ca")
-        with c3: cond_evening = st.select_slider("저녁", options=range(0, 101, 10), value=40, format_func=format_cond, key="ce")
+        with c1: cond_morning = st.select_slider("아침", options=range(0, 101, 10), value=50, format_func=format_cond, help=cond_help_text, key="cm")
+        with c2: cond_afternoon = st.select_slider("점심", options=range(0, 101, 10), value=70, format_func=format_cond, help=cond_help_text, key="ca")
+        with c3: cond_evening = st.select_slider("저녁", options=range(0, 101, 10), value=40, format_func=format_cond, help=cond_help_text, key="ce")
         
         st.write("")
-        st.markdown("#### 🎯 일일 성취도")
-        st.caption("💡 기준: 오늘 계획했던 핵심 루틴과 업무를 얼마나 달성했나요?")
-        achievement_today = st.slider("오늘의 성취도 (%)", 0, 100, 70, 10, key="achieve")
+        # 성취도 기준 문구도 help 툴팁으로 이동시켜 세로 배치 최소화
+        achieve_help_text = "💡 기준: 오늘 계획했던 핵심 루틴과 업무를 얼마나 달성했나요?"
+        achievement_today = st.slider("🎯 오늘의 성취도 (%)", 0, 100, 70, 10, help=achieve_help_text, key="achieve")
         
         avg_cond_today = (cond_morning + cond_afternoon + cond_evening) / 3
         
@@ -273,18 +275,22 @@ with tab2:
         })
         df_history = pd.concat([df_mock, df_today], ignore_index=True)
         
-        # [✨여기가 핵심 해결책✨] 섞인 데이터 타입을 datetime으로 강제 통일
-        df_history["날짜"] = pd.to_datetime(df_history["날짜"]) 
-        
+        # 데이터 타입 datetime으로 안전하게 형변환 (에러 방지)
+        df_history["날짜"] = pd.to_datetime(df_history["날짜"])
         df_history["요일"] = df_history["날짜"].dt.strftime("%a")
         
-        # 차트 영역을 탭으로 분리하여 깔끔하게 배치
+        # 🎨 SK하이닉스 컨셉 색상 맵핑 (주황색 & 빨간색)
+        hynix_colors = {"일일_평균": "#FF6B00", "성취도": "#E60024"}
+        
+        # 차트 영역 탭 분리 구성
         chart_tab1, chart_tab2, chart_tab3 = st.tabs(["📈 종합 추이", "⏰ 시간대별 패턴", "📅 요일별 분석"])
         
         with chart_tab1:
+            # 하이닉스 컬러 맵핑 적용
             fig_trend = px.line(df_history, x="날짜", y=["일일_평균", "성취도"],
                                 labels={"value": "점수", "variable": "지표"},
-                                title="최근 2주 컨디션 vs 성취도 추이", markers=True)
+                                title="최근 2주 컨디션 vs 성취도 추이", markers=True,
+                                color="variable", color_discrete_map=hynix_colors)
             fig_trend.update_layout(height=320, margin=dict(t=40, b=0, l=0, r=0))
             st.plotly_chart(fig_trend, use_container_width=True)
             
@@ -299,14 +305,15 @@ with tab2:
             day_order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
             df_history['요일'] = pd.Categorical(df_history['요일'], categories=day_order, ordered=True)
             df_day = df_history.groupby("요일")[["일일_평균", "성취도"]].mean().reset_index()
-            fig_day = px.bar(df_day, x="요일", y=["일일_평균", "성취도"], barmode="group", title="요일별 평균 비교")
+            # 하이닉스 컬러 맵핑 적용
+            fig_day = px.bar(df_day, x="요일", y=["일일_평균", "성취도"], barmode="group", 
+                             title="요일별 평균 비교", color="variable", color_discrete_map=hynix_colors)
             fig_day.update_layout(height=320, margin=dict(t=40, b=0, l=0, r=0))
             st.plotly_chart(fig_day, use_container_width=True)
 
     with col_chat2:
         st.subheader("💬 멘탈/성취도 맞춤 코칭")
         
-        # AI 프롬프트에 아침/점심/저녁 데이터와 성취도 주입
         sys_prompt_2 = f"""
         너는 직장인의 멘탈과 성취도를 관리해주는 따뜻하고 예리한 상담가야.
         오늘 사용자의 데이터:
