@@ -378,15 +378,17 @@ with tab2:
                 st.session_state.messages_2.append({"role": "assistant", "content": response_2.text})
 
 # ==========================================
-# 탭 3: 월급 시뮬레이터 (슬라이더 색상 동적 변경 적용)
+# 탭 3: 월급 시뮬레이터 (슬라이더 선, 숫자 색상까지 완전 연동 및 차트 에러 수정)
 # ==========================================
 with tab3:
     col_vis3, col_chat3 = st.columns([6, 4])
     
     with col_vis3:
+        # 공간 초압축: 한 줄로 타이틀과 실수령액 안내 결합
         st.markdown("### 📈 월급 시뮬레이터 <span style='font-size:16px; color:gray; font-weight:normal; margin-left:15px;'>예상 월 세후 실수령액: <b>3,750,000원</b> (원 단위 예산 설정)</span>", unsafe_allow_html=True)
         net_salary = 3750000 
         
+        # 1. 고정 지출 리스트를 expander로 숨겨서 세로 공간 확보
         with st.expander("🏠 고정 지출 상세 내역 (정기 결제 항목 보기/편집)", expanded=False):
             fixed_expenses_data = pd.DataFrame([
                 {"항목": "휴대폰 기기 + 통신", "금액": 105000},
@@ -400,6 +402,7 @@ with tab3:
         
         total_fixed = edited_fixed["금액"].sum()
         
+        # 2. 투자/저축액(10만원 단위) 및 수익률 설정
         st.write("")
         c1, c2 = st.columns(2)
         with c1:
@@ -407,26 +410,39 @@ with tab3:
         with c2:
             ret_rate = st.slider("😈 수익률 시뮬레이션 (-20% 지옥 ~ +20% 천국) 😇", -20.0, 20.0, 4.0, 0.5, key="slide_rate_3")
             
-            # [NEW] 슬라이더 UI 색상을 동적으로 변경하는 CSS 인젝션
+            # 🎨 플러스=레드, 마이너스=블루, 0.0=그레이 색상 지정
             if ret_rate > 0: slider_color = "#e74c3c" # 빨간색
             elif ret_rate < 0: slider_color = "#3498db" # 파란색
             else: slider_color = "#95a5a6" # 회색 (0.0%)
             
+            # [🔥 핵심 해결책] 슬라이더의 동그라미, 채워진 선, 상단 숫자 색상까지 일괄 변경하는 하이퍼 CSS
             st.markdown(f"""
             <style>
-                /* 슬라이더 동그라미(Thumb) 색상 변경 */
+                /* 1. 슬라이더 동그라미(Thumb) 색상 */
                 div.stSlider > div[data-baseweb="slider"] div[role="slider"] {{
                     background-color: {slider_color} !important;
+                    box-shadow: 0px 0px 5px {slider_color} !important;
                 }}
-                /* 슬라이더 채워지는 바(Track) 색상 변경 */
+                /* 2. 채워지는 앞쪽 막대선(Track) 색상 */
+                div.stSlider > div[data-baseweb="slider"] > div > div > div:nth-child(1) {{
+                    background: {slider_color} !important;
+                }}
+                /* 3. 슬라이더 활성화 상태의 틱 바 색상 */
                 div.stSlider > div[data-baseweb="slider"] div[data-testid="stTickBar"] > div {{
                     background-color: {slider_color} !important;
+                }}
+                /* 4. 슬라이더 상단에 표시되는 실시간 숫자(Value) 색상 */
+                div.stSlider [data-testid="stWidgetLabel"] + div div {{
+                    color: {slider_color} !important;
+                    font-weight: bold;
                 }}
             </style>
             """, unsafe_allow_html=True)
             
+        # 남은 잔액 계산
         amt_flex = net_salary - total_fixed - amt_save
         
+        # 요약 메트릭 배치
         st.write("")
         m1, m2, m3 = st.columns(3)
         m1.metric("월 투자액", f"{amt_save:,} 원")
@@ -438,6 +454,7 @@ with tab3:
             
         st.markdown("---")
         
+        # 3. 데이터 계산 및 한글 단위 변환 플로팅 로직
         years = np.arange(1, 6)
         results = []
         for y in years:
@@ -482,10 +499,12 @@ with tab3:
                        text="금액_텍스트",
                        color_discrete_map=color_map)
                        
+        # inside 텍스트 정렬을 'middle'로 수정하여 ValueError 에러 해결 완료!
         fig_g.update_traces(textposition='inside', insidetextanchor='middle')
         fig_g.update_layout(height=380, margin=dict(t=40, b=0, l=0, r=0), yaxis_title="금액 (단위: 만 원)")
         st.plotly_chart(fig_g, use_container_width=True)
 
+    # 오른쪽 AI 채팅창 영역
     with col_chat3:
         st.subheader("💬 재무 상담가 코멘트")
         sys_prompt_3 = f"""
@@ -514,7 +533,6 @@ with tab3:
                     response_3 = model.generate_content(f"{sys_prompt_3}\n\n질문: {user_input_3}")
                     st.write(response_3.text)
                 st.session_state.messages_3.append({"role": "assistant", "content": response_3.text})
-
 # ==========================================
 # 탭 4: 소비 패턴 분석 및 팩폭 컨설팅
 # ==========================================
