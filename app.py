@@ -532,9 +532,9 @@ with tab3:
                 st.session_state.messages_3.append({"role": "assistant", "content": response_3.text})
 
 # ==========================================
-# 탭 4: 소비 패턴 분석 및 팩폭 컨설팅 (폭포수 차트 및 동적 브리핑 업그레이드)
+# 탭 4: 소비 패턴 분석 및 팩폭 컨설팅 (스마트 브리핑 로직 적용)
 # ==========================================
-import plotly.graph_objects as go # 상단 임포트 확인 필요
+import plotly.graph_objects as go
 
 with tab4:
     col_vis4, col_chat4 = st.columns([6, 4])
@@ -611,7 +611,7 @@ with tab4:
                 
         st.markdown("---")
         
-        # 🔥 업그레이드: 전월 대비 증감 분석 (폭포수 차트 + 동적 브리핑)
+        # 🔥 스마트 브리핑 및 폭포수 차트
         curr_idx = months_list.index(selected_month)
         if curr_idx > 0:
             prev_month = months_list[curr_idx - 1]
@@ -633,15 +633,28 @@ with tab4:
                     if diff_val != 0:
                         diff_dict[cat] = diff_val
                 
-                # 동적 요약 브리핑 로직
-                if diff_dict:
-                    max_increase_cat = max(diff_dict, key=diff_dict.get)
-                    max_increase_val = diff_dict[max_increase_cat]
-                    
-                    if max_increase_val > 0:
-                        st.error(f"🚨 **경고:** 전월 대비 지출 증가의 주원인은 **'{max_increase_cat}'** 입니다. (+{max_increase_val:,.1f}만 원 증가)")
-                    elif curr_total < prev_total:
-                        st.success(f"🎉 **훌륭합니다!** 전체 지출이 전월 대비 **{(prev_total - curr_total)/10000:,.1f}만 원** 감소했습니다.")
+                # [개선] 총지출 기준 스마트 브리핑 로직
+                total_diff_man = (curr_total - prev_total) / 10000
+                
+                if total_diff_man > 0:
+                    increase_dict = {k: v for k, v in diff_dict.items() if v > 0}
+                    if increase_dict:
+                        max_inc_cat = max(increase_dict, key=increase_dict.get)
+                        max_inc_val = increase_dict[max_inc_cat]
+                        st.error(f"🚨 **경고:** 전체 지출이 전월 대비 **{total_diff_man:,.1f}만 원** 늘었습니다. 주원인은 **'{max_inc_cat}'**(+{max_inc_val:,.1f}만 원) 입니다.")
+                    else:
+                        st.error(f"🚨 **경고:** 전체 지출이 전월 대비 **{total_diff_man:,.1f}만 원** 늘었습니다.")
+                        
+                elif total_diff_man < 0:
+                    decrease_dict = {k: v for k, v in diff_dict.items() if v < 0}
+                    if decrease_dict:
+                        max_dec_cat = min(decrease_dict, key=decrease_dict.get)
+                        max_dec_val = abs(decrease_dict[max_dec_cat])
+                        st.success(f"🎉 **훌륭합니다!** 전체 지출이 전월 대비 **{abs(total_diff_man):,.1f}만 원** 감소했습니다. 특히 **'{max_dec_cat}'**(-{max_dec_val:,.1f}만 원) 절약이 컸습니다!")
+                    else:
+                        st.success(f"🎉 **훌륭합니다!** 전체 지출이 전월 대비 **{abs(total_diff_man):,.1f}만 원** 감소했습니다.")
+                else:
+                    st.info("⚖️ 전체 지출 금액이 전월과 정확히 동일합니다.")
                 
                 # 폭포수 차트 그리기
                 x_labels = [f"{prev_month} 총지출"] + categories + [f"{selected_month} 총지출"]
