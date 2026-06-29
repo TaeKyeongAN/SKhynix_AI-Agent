@@ -532,8 +532,10 @@ with tab3:
                 st.session_state.messages_3.append({"role": "assistant", "content": response_3.text})
 
 # ==========================================
-# 탭 4: 소비 패턴 분석 및 팩폭 컨설팅 (만원 단위 및 파이차트 심플화)
+# 탭 4: 소비 패턴 분석 및 팩폭 컨설팅 (폭포수 차트 및 동적 브리핑 업그레이드)
 # ==========================================
+import plotly.graph_objects as go # 상단 임포트 확인 필요
+
 with tab4:
     col_vis4, col_chat4 = st.columns([6, 4])
     
@@ -575,7 +577,6 @@ with tab4:
         monthly_totals = [sum(st.session_state.monthly_expenses[m]) for m in months_list]
         df_trend = pd.DataFrame({"월": months_list, "지출액": monthly_totals})
         
-        # 합계가 0인 달은 그래프에서 제외하고, '만 원' 단위 컬럼 추가
         df_trend_filtered = df_trend[df_trend["지출액"] > 0].copy()
         df_trend_filtered["지출액(만)"] = df_trend_filtered["지출액"] / 10000
         
@@ -585,10 +586,7 @@ with tab4:
             
             if not df_trend_filtered.empty:
                 colors = ["#e74c3c" if m == selected_month else "#3498db" for m in df_trend_filtered["월"]]
-                # y축을 지출액(만)으로 설정
                 fig_trend = px.bar(df_trend_filtered, x="월", y="지출액(만)", color="월", color_discrete_sequence=colors)
-                
-                # 텍스트 포맷을 깔끔하게 'OO만'으로 설정
                 fig_trend.update_traces(texttemplate='%{y:,.0f}만', textposition='outside')
                 fig_trend.update_layout(
                     height=280, margin=dict(t=25, b=10, l=0, r=0), 
@@ -605,8 +603,6 @@ with tab4:
             if current_total > 0:
                 df_pie = edited_df[edited_df["금액"] > 0]
                 fig_pie = px.pie(df_pie, values="금액", names="카테고리", hole=0.3, color_discrete_sequence=px.colors.qualitative.Pastel)
-                
-                # 🔥 파이 차트를 본래의 깔끔한 퍼센티지+레이블 형태로 복구
                 fig_pie.update_traces(textposition='inside', textinfo='percent+label')
                 fig_pie.update_layout(height=280, margin=dict(t=25, b=10, l=0, r=0))
                 st.plotly_chart(fig_pie, use_container_width=True)
@@ -615,35 +611,66 @@ with tab4:
                 
         st.markdown("---")
         
-        # 전월 대비 증감 분석
+        # 🔥 업그레이드: 전월 대비 증감 분석 (폭포수 차트 + 동적 브리핑)
         curr_idx = months_list.index(selected_month)
         if curr_idx > 0:
             prev_month = months_list[curr_idx - 1]
-            st.markdown(f"##### 📈 전월 대비 항목별 증감 분석 ({prev_month} vs {selected_month})")
+            st.markdown(f"##### 📈 지출 증감 원인 분석 ({prev_month} ➔ {selected_month})")
             
-            if sum(st.session_state.monthly_expenses[selected_month]) == 0 and sum(st.session_state.monthly_expenses[prev_month]) == 0:
+            prev_total = sum(st.session_state.monthly_expenses[prev_month])
+            curr_total = sum(st.session_state.monthly_expenses[selected_month])
+            
+            if curr_total == 0 and prev_total == 0:
                 st.info("비교할 지출 데이터가 없습니다.")
             else:
-                comp_data = []
+                diffs = []
+                diff_dict = {}
                 for i, cat in enumerate(categories):
                     curr_val = st.session_state.monthly_expenses[selected_month][i]
                     prev_val = st.session_state.monthly_expenses[prev_month][i]
-                    diff = curr_val - prev_val
-                    comp_data.append({"카테고리": cat, "증감": diff})
-                    
-                df_comp = pd.DataFrame(comp_data)
-                # '만 원' 단위 변환
-                df_comp["증감(만)"] = df_comp["증감"] / 10000
-                df_comp["금액_텍스트"] = df_comp["증감(만)"].apply(lambda x: f"+{x:,.1f}만" if x > 0 else f"{x:,.1f}만" if x < 0 else "변동 없음")
+                    diff_val = (curr_val - prev_val) / 10000 # 만 원 단위
+                    diffs.append(diff_val)
+                    if diff_val != 0:
+                        diff_dict[cat] = diff_val
                 
-                fig_diff = px.bar(df_comp, x="카테고리", y="증감(만)", text="금액_텍스트",
-                                  color=df_comp["증감"] > 0,
-                                  color_discrete_map={True: "#e74c3c", False: "#2ecc71"})
-                fig_diff.update_traces(textposition='auto')
-                fig_diff.update_layout(height=280, margin=dict(t=10, b=10, l=0, r=0), showlegend=False, yaxis=dict(title="증감액 (만 원)"))
-                st.plotly_chart(fig_diff, use_container_width=True)
+                # 동적 요약 브리핑 로직
+                if diff_dict:
+                    max_increase_cat = max(diff_dict, key=diff_dict.get)
+                    max_increase_val = diff_dict[max_increase_cat]
+                    
+                    if max_increase_val > 0:
+                        st.error(f"🚨 **경고:** 전월 대비 지출 증가의 주원인은 **'{max_increase_cat}'** 입니다. (+{max_increase_val:,.1f}만 원 증가)")
+                    elif curr_total < prev_total:
+                        st.success(f"🎉 **훌륭합니다!** 전체 지출이 전월 대비 **{(prev_total - curr_total)/10000:,.1f}만 원** 감소했습니다.")
+                
+                # 폭포수 차트 그리기
+                x_labels = [f"{prev_month} 총지출"] + categories + [f"{selected_month} 총지출"]
+                measure_list = ["absolute"] + ["relative"] * len(categories) + ["total"]
+                y_values = [prev_total/10000] + diffs + [curr_total/10000]
+                text_values = [f"{prev_total/10000:,.0f}만"] + [f"{x:+.1f}만" if x!=0 else "-" for x in diffs] + [f"{curr_total/10000:,.0f}만"]
+                
+                fig_waterfall = go.Figure(go.Waterfall(
+                    name="20", orientation="v",
+                    measure=measure_list,
+                    x=x_labels,
+                    textposition="outside",
+                    text=text_values,
+                    y=y_values,
+                    connector={"line":{"color":"rgb(63, 63, 63)"}},
+                    decreasing={"marker":{"color":"#2ecc71"}},
+                    increasing={"marker":{"color":"#e74c3c"}},
+                    totals={"marker":{"color":"#3498db", "line":{"color":"blue", "width":2}}}
+                ))
+                
+                fig_waterfall.update_layout(
+                    height=320, 
+                    margin=dict(t=30, b=10, l=0, r=0),
+                    showlegend=False,
+                    yaxis=dict(title="지출액 (만 원)")
+                )
+                st.plotly_chart(fig_waterfall, use_container_width=True)
         else:
-            st.markdown("##### 📈 전월 대비 항목별 증감 분석")
+            st.markdown("##### 📈 지출 증감 원인 분석")
             st.info("1월은 이전 데이터가 없어 증감 비교를 제공하지 않습니다.")
 
     # 4. 오른쪽 AI 팩폭 채팅창 영역
