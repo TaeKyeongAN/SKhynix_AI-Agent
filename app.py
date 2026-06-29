@@ -62,6 +62,10 @@ with st.sidebar:
     st.markdown("### ⏳ D-Day\n")
     st.info(f"**입사일:** {join_str}\n\n**월급날:** {pay_str}")
     st.markdown("---")
+    
+    st.markdown("### 🌡️ 오늘의 컨디션")
+    condition = st.radio("현재 기분이 어떠신가요?", ["😀 최고예요!", "😐 그저 그래요", "😥 피곤해요"], horizontal=True)
+    st.markdown("---")
 
 # ----------------------------------------------------------------------
 # 5. 메인 화면 로직 (탭 기반 1기능-1채팅 레이아웃)
