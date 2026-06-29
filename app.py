@@ -149,23 +149,42 @@ with tab1:
                 fig_today.update_layout(height=350, margin=dict(t=50, b=0, l=0, r=0))
                 st.plotly_chart(fig_today, use_container_width=True)
         
-        # [NEW: AI 패턴 비교 분석 영역]
+        # [NEW: 로직 기반 패턴 비교 분석 영역]
         st.markdown("---")
-        st.markdown("#### 🤖 AI 패턴 비교 분석")
+        st.markdown("#### 📊 패턴 비교 분석")
         
-        # 슬라이더 과부하 방지를 위한 버튼 클릭 방식
         if st.button("✨ 평균 데이터 vs 오늘 계획 비교하기"):
-            with st.spinner("AI가 패턴을 비교 분석 중입니다..."):
-                compare_prompt = f"""
-                너는 팩트 기반의 따뜻한 루틴 코치야.
-                [선택한 통계 ({display_title})] 수면 {data_values[0]}h, 업무 {data_values[1]}h, 자기계발 {data_values[2]}h, 일상/휴식 {data_values[3]}h
-                [오늘의 계획] 수면 {sleep_h}h, 업무 {work_h}h, 자기계발 {study_h}h, 일상/휴식 {rest_h:.1f}h
+            avg_sleep, avg_work, avg_study, avg_rest = data_values
+            
+            diff_sleep = sleep_h - avg_sleep
+            diff_work = work_h - avg_work
+            diff_study = study_h - avg_study
+            
+            comments = []
+            
+            # 수면 시간 분석
+            if diff_sleep <= -1.0:
+                comments.append("평소보다 **수면 시간이 부족**해 보여요. 컨디션 관리에 유의하세요! 🛌")
+            elif diff_sleep >= 1.0:
+                comments.append("오늘은 평소보다 **수면을 넉넉히** 챙기셨네요. 에너지 충전하기 딱 좋은 날입니다! 🔋")
                 
-                이 두 데이터를 비교해서, 오늘 계획이 평소보다 어떤 점이 나아졌는지, 혹은 무리하고 있는 부분은 없는지 2~3줄로 짧고 임팩트 있게 코멘트해줘.
-                (일상/휴식 시간은 단순 노는 시간이 아니라 밥 먹고 씻는 필수 생활 시간임도 감안할 것)
-                """
-                compare_response = model.generate_content(compare_prompt)
-                st.success(compare_response.text)
+            # 업무 및 자기계발(생산성) 분석
+            if (diff_work + diff_study) >= 1.5:
+                comments.append("평균보다 **업무와 자기계발에 투자하는 시간이 많습니다.** 열정도 좋지만 번아웃 조심하세요! 🔥")
+            elif (diff_work + diff_study) <= -1.5:
+                comments.append("오늘은 평소보다 일/공부 부담을 좀 덜어내셨네요. **여유를 즐기는 것도 루틴의 일부**죠! ☕")
+                
+            # 일상/휴식 분석
+            if rest_h < 4.0:
+                comments.append("식사나 이동을 제외하면 **온전한 휴식 시간이 꽤 부족**할 수 있어요. 짬 내서 꼭 스트레칭하세요! 🧘")
+                
+            # 밸런스가 좋은 경우
+            if not comments:
+                comments.append("평소 패턴과 비슷하게 **안정적이고 균형 잡힌 하루**를 계획하셨네요. 훌륭한 루틴 유지입니다! 👏")
+            
+            # 결과 출력
+            final_comment = "\n\n".join(comments)
+            st.success(final_comment)
                 
     # [우측: 채팅 영역]
     with col_chat1:
