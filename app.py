@@ -378,79 +378,103 @@ with tab2:
                 st.session_state.messages_2.append({"role": "assistant", "content": response_2.text})
 
 # ==========================================
-# 탭 3: 월급 시뮬레이터 (투자 중심 & 시각화 디테일)
+# 탭 3: 월급 시뮬레이터 (원상복구 및 차트 통합 개편)
 # ==========================================
 with tab3:
     col_vis3, col_chat3 = st.columns([6, 4])
     
     with col_vis3:
-        st.subheader("📈 투자 중심 자산 시뮬레이터")
+        st.subheader("📈 월급 시뮬레이터")
         net_salary = 3750000 
         
-        # 1. 고정 지출 설정
-        with st.expander("🏠 고정 지출 상세 관리", expanded=False):
-            fixed_expenses_data = pd.DataFrame([
-                {"항목": "휴대폰", "금액": 105000}, {"항목": "구글 AI", "금액": 29000},
-                {"항목": "유튜브", "금액": 15000}, {"항목": "넷플릭스", "금액": 13500}
-            ])
-            edited_fixed = st.data_editor(fixed_expenses_data, num_rows="dynamic", use_container_width=True)
-        total_fixed = edited_fixed["금액"].sum()
-        
-        # 2. 투자/저축 설정
-        c1, c2 = st.columns(2)
-        with c1:
-            amt_save = st.number_input("💰 월 투자액 (원)", min_value=0, max_value=net_salary, value=1000000, step=100000)
-        with c2:
-            ret_rate = st.slider("📊 연 기대 수익률 (%)", -5.0, 20.0, 4.0, 0.5)
-            
-        amt_flex = net_salary - total_fixed - amt_save
-        m1, m2, m3 = st.columns(3)
-        m1.metric("월 투자액", f"{amt_save:,}원")
-        m2.metric("고정지출", f"{total_fixed:,}원")
-        m3.metric("남은 생활비", f"{amt_flex:,}원")
+        # 💵 예상 월 실수령액 텍스트 복구
+        st.markdown(f"### 💵 예상 월 실수령액: `3,750,000원`")
         
         st.markdown("---")
+        st.markdown("#### 🛠️ 월 예산 설정 (원 단위)")
         
-        # 3. 데이터 계산 (연도별)
+        # 1. 고정 지출 리스트 복구 (6개 항목)
+        st.markdown("#### 🏠 고정 지출 상세 (정기 결제)")
+        fixed_expenses_data = pd.DataFrame([
+            {"항목": "휴대폰 기기 + 통신", "금액": 105000},
+            {"항목": "구글 AI Pro", "금액": 29000},
+            {"항목": "유튜브 프리미엄", "금액": 15000},
+            {"항목": "넷플릭스", "금액": 13500},
+            {"항목": "카카오톡", "금액": 6000},
+            {"항목": "티빙", "금액": 5500}
+        ])
+        
+        edited_fixed = st.data_editor(fixed_expenses_data, num_rows="dynamic", use_container_width=True)
+        total_fixed = edited_fixed["금액"].sum()
+        
+        st.write("")
+        # 2. 투자/저축 및 수익률 설정 (150만원 기본값 복구 및 -20~+20 범위 수정)
+        c1, c2 = st.columns(2)
+        with c1:
+            amt_save = st.number_input("💰 저축/투자 금액 (원)", min_value=0, max_value=net_salary, value=1500000, step=10000)
+        with c2:
+            ret_rate = st.slider("📊 수익률 시뮬레이션 (%)", -20.0, 20.0, 4.0, 0.5)
+            
+        # 잔액 계산
+        amt_flex = net_salary - total_fixed - amt_save
+        
+        st.write("")
+        m1, m2, m3 = st.columns(3)
+        m1.metric("저축/투자", f"{amt_save:,} 원")
+        m2.metric("고정 지출", f"{total_fixed:,} 원")
+        m3.metric("남은 생활비", f"{amt_flex:,} 원", delta_color="normal")
+        
+        if amt_flex < 0:
+            st.error("⚠️ 설정한 예산이 월급을 초과했습니다! 지출이나 저축액을 조정하세요.")
+            
+        st.markdown("---")
+        
+        # 3. 데이터 통합 및 시각화 (만 원 단위 직관적 표현)
+        st.markdown("#### 📊 5년 누적 손익 및 자산 성장 추이")
+        
         years = np.arange(1, 6)
         results = []
         for y in years:
             months = y * 12
-            # 복리 계산
             fv = 0
-            for m in range(months): fv = (fv + amt_save) * (1 + (ret_rate/100)/12)
-            results.append({"년차": f"{y}년", "자산(만원)": fv/10000, "원금(만원)": (amt_save*months)/10000})
+            for m in range(months): 
+                fv = (fv + amt_save) * (1 + (ret_rate/100)/12)
+            
+            principal = amt_save * months
+            profit = fv - principal
+            
+            results.append({
+                "년차": f"{y}년",
+                "원금(만원)": principal / 10000,
+                "손익(만원)": profit / 10000
+            })
 
         df_g = pd.DataFrame(results)
-        df_g["수익(만원)"] = df_g["자산(만원)"] - df_g["원금(만원)"]
         
-        # 4. 탭별 시각화
-        sub1, sub2, sub3 = st.tabs(["📊 자산 성장 추이", "⚖️ 수익률 시나리오", "📉 누적 손익 분석"])
+        # Plotly 누적 막대 그래프를 위해 데이터 형태 변환 (Melt)
+        df_melt = df_g.melt(id_vars="년차", value_vars=["원금(만원)", "손익(만원)"], var_name="구분", value_name="금액(만원)")
         
-        with sub1:
-            fig1 = px.bar(df_g, x="년차", y="자산(만원)", title="5년 자산 성장 추이", text_auto='.0f')
-            st.plotly_chart(fig1, use_container_width=True)
-            
-        with sub2:
-            scenarios = []
-            for r in [ret_rate-5, ret_rate, ret_rate+5]:
-                fv = 0
-                for m in range(5*12): fv = (fv + amt_save) * (1 + (r/100)/12)
-                scenarios.append({"수익률": f"{r}%", "5년후 자산(억)": fv/100000000})
-            fig2 = px.line(pd.DataFrame(scenarios), x="수익률", y="5년후 자산(억)", markers=True, title="수익률별 5년 후 자산 시나리오")
-            st.plotly_chart(fig2, use_container_width=True)
-            
-        with sub3:
-            # 마이너스 수익률도 표현 가능한 누적 수익 그래프
-            fig3 = px.bar(df_g, x="년차", y=["원금(만원)", "수익(만원)"], title="원금 대비 누적 손익", barmode="relative")
-            st.plotly_chart(fig3, use_container_width=True)
-            
+        # 🎨 마이너스는 파란색, 플러스는 빨간색, 원금은 회색 처리
+        profit_color = "#3498db" if ret_rate < 0 else "#e74c3c" 
+        color_map = {"원금(만원)": "#95a5a6", "손익(만원)": profit_color}
+
+        fig_g = px.bar(df_melt, x="년차", y="금액(만원)", color="구분",
+                       title=f"연 기대 수익률 {ret_rate}% 가정 시뮬레이션",
+                       barmode="relative", 
+                       text_auto='.0f',
+                       color_discrete_map=color_map)
+                       
+        # y축과 텍스트가 "O만" 형태로 깔끔하게 보이도록 서식 적용
+        fig_g.update_traces(texttemplate='%{y:,.0f}만')
+        fig_g.update_layout(height=400, margin=dict(t=40, b=0, l=0, r=0), yaxis_title="금액 (만 원)")
+        st.plotly_chart(fig_g, use_container_width=True)
+
     with col_chat3:
         st.subheader("💬 재무 상담가 코멘트")
         sys_prompt_3 = f"""
         너는 재무 전문가야. 사용자의 월 세후 실수령액은 375만원이야.
         - 고정 지출 합계: {total_fixed}원
-        - 저축액: {amt_save}원
+        - 투자액: {amt_save}원
         - 남은 생활비: {amt_flex}원
         - 기대 수익률: {ret_rate}%
         
