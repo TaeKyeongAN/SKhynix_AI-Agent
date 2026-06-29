@@ -532,68 +532,94 @@ with tab3:
                 st.session_state.messages_3.append({"role": "assistant", "content": response_3.text})
 
 # ==========================================
-# 탭 4: 소비 패턴 분석 (1~6월 데이터 시각화 및 전월 대비 증감 분석)
+# 탭 4: 소비 패턴 분석 및 팩폭 컨설팅 (완벽 통합 버전)
 # ==========================================
 with tab4:
-    st.subheader("📊 월간 소비 패턴 분석 리포트")
+    col_vis4, col_chat4 = st.columns([6, 4])
     
-    # 1. 월별 지출 데이터 생성 (1~6월 집계, 7~12월 미집계)
-    # 1,6월 높음, 2,5월 보통, 3,4월 낮음 반영
-    months = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"]
-    spending_data = [2800000, 2200000, 1800000, 1700000, 2100000, 2900000, 0, 0, 0, 0, 0, 0]
-    df_monthly = pd.DataFrame({"월": months, "지출액": spending_data})
-    
-    # 6월 상세 항목 (지출 성향)
-    categories = ["식비", "주거/통신", "자기계발", "취미/여가", "기타"]
-    # 6월 상세 비중 (합계 290만)
-    june_data = [900000, 700000, 500000, 600000, 200000]
-    # 5월 상세 비중 (합계 210만)
-    may_data = [700000, 700000, 300000, 300000, 100000]
-    
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        st.markdown("##### 📅 월별 총 지출 추이")
-        fig_trend = px.bar(df_monthly, x="월", y="지출액", color_discrete_sequence=["#3498db"])
-        fig_trend.update_layout(height=300)
-        st.plotly_chart(fig_trend, use_container_width=True)
+    with col_vis4:
+        st.subheader("💸 소비 패턴 분석 및 팩폭 컨설팅")
         
-    with col2:
-        st.markdown("##### 🥧 6월 지출 카테고리 분포")
-        fig_pie = px.pie(values=june_data, names=categories, hole=0.3)
-        fig_pie.update_layout(height=300)
-        st.plotly_chart(fig_pie, use_container_width=True)
+        # 1. 6월 지출 내역 기본값 세팅 (탭3 고정지출 및 현실적 소비 반영)
+        df_expenses = pd.DataFrame([
+            {"카테고리": "식비(배달 포함)", "금액": 1200000},
+            {"카테고리": "교통비", "금액": 200000},
+            {"카테고리": "쇼핑/자기계발", "금액": 800000},
+            {"카테고리": "기타", "금액": 500000}
+        ])
+        
+        st.markdown("##### ✍️ 6월 지출 내역 편집 (금액을 변경하면 리포트와 AI가 실시간으로 반응합니다)")
+        edited_df = st.data_editor(df_expenses, num_rows="dynamic", use_container_width=True, key="expense_editor")
+        
+        # 6월 총합 계산 (차트 실시간 연동용)
+        june_total = edited_df["금액"].sum() if not edited_df.empty else 0
+        
+        st.write("")
+        # 2. 차트 레이아웃 분할 (나란히 배치하여 공간 활용 최적화)
+        c1, c2 = st.columns(2)
+        
+        with c1:
+            st.markdown("<p style='font-size:14px; font-weight:bold; margin-bottom:0;'>📅 월별 총 지출 추이 (7~12월 미집계)</p>", unsafe_allow_html=True)
+            # 1,6월 높음 / 2,5월 보통 / 3,4월 낮음 / 7~12월 미집계 반영
+            months = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"]
+            spending_data = [2600000, 1800000, 1200000, 1100000, 1900000, june_total, 0, 0, 0, 0, 0, 0]
+            df_monthly = pd.DataFrame({"월": months, "지출액": spending_data})
+            
+            fig_trend = px.bar(df_monthly, x="월", y="지출액", text_auto='.2s', color_discrete_sequence=["#3498db"])
+            fig_trend.update_layout(height=260, margin=dict(t=10, b=10, l=0, r=0), showlegend=False, yaxis_title="")
+            st.plotly_chart(fig_trend, use_container_width=True)
+            
+        with c2:
+            st.markdown("<p style='font-size:14px; font-weight:bold; margin-bottom:0;'>🥧 6월 지출 카테고리 분포</p>", unsafe_allow_html=True)
+            fig_pie = px.pie(edited_df, values="금액", names="카테고리", hole=0.3,
+                             color_discrete_sequence=px.colors.qualitative.Pastel)
+            fig_pie.update_layout(height=260, margin=dict(t=10, b=10, l=0, r=0))
+            st.plotly_chart(fig_pie, use_container_width=True)
+            
+        st.markdown("---")
+        
+        # 3. 최신달(6월) vs 그 직전달(5월) 항목별 비교 분석
+        st.markdown("##### 📈 전월 대비 항목별 증감 분석 (5월 vs 6월)")
+        
+        # 5월 기준 고정 데이터 (보통 수준의 소비 패턴 지출액)
+        may_data = {
+            "식비(배달 포함)": 900000,
+            "교통비": 180000,
+            "쇼핑/자기계발": 500000,
+            "기타": 320000
+        }
+        
+        comp_results = []
+        for _, row in edited_df.iterrows():
+            cat = row["카테고리"]
+            june_val = row["금액"]
+            may_val = may_data.get(cat, 0) # 새 카테고리 추가 시 5월은 0원 처리
+            diff = june_val - may_val
+            comp_results.append({"카테고리": cat, "증감": diff})
+            
+        df_comp = pd.DataFrame(comp_results)
+        df_comp["금액_텍스트"] = df_comp["증감"].apply(lambda x: f"+{x:,}원" if x > 0 else f"{x:,}원")
+        
+        # 지출 증가=빨간색(#e74c3c), 지출 감소=초록색(#2ecc71) 다이내믹 매핑
+        fig_diff = px.bar(df_comp, x="카테고리", y="증감", text="금액_텍스트",
+                          color=df_comp["증감"] > 0,
+                          color_discrete_map={True: "#e74c3c", False: "#2ecc71"})
+        fig_diff.update_traces(textposition='auto')
+        fig_diff.update_layout(height=280, margin=dict(t=10, b=10, l=0, r=0), showlegend=False, yaxis_title="증감액 (원)")
+        st.plotly_chart(fig_diff, use_container_width=True)
 
-    st.markdown("---")
-    
-    # 2. 5월 vs 6월 항목별 비교 분석
-    st.markdown("##### 📈 항목별 전월 대비 증감 분석 (5월 vs 6월)")
-    df_comp = pd.DataFrame({
-        "항목": categories,
-        "5월": may_data,
-        "6월": june_data
-    })
-    df_comp["증감"] = df_comp["6월"] - df_comp["5월"]
-    
-    # 증감 시각화
-    fig_diff = px.bar(df_comp, x="항목", y="증감", color=df_comp["증감"] > 0,
-                      color_discrete_map={True: "#e74c3c", False: "#2ecc71"},
-                      text="증감")
-    fig_diff.update_layout(showlegend=False, height=300)
-    st.plotly_chart(fig_diff, use_container_width=True)
-    
-    # 3. 상세 분석 코멘트
-    st.info("""
-    **💡 AI 소비 분석 결과:**
-    - 6월은 1월과 함께 가장 지출이 많은 달입니다. 특히 **'식비'와 '취미/여가' 항목**에서 전월 대비 큰 폭의 증가세가 확인됩니다.
-    - 7월부터는 6월의 급격한 지출을 고려하여, 자기계발비를 제외한 취미 예산을 10% 축소하는 전략을 권장합니다.
-    """)
-
+    # 4. 오른쪽 AI 팩폭 채팅창 영역 (뼈대 코드 완벽 복구 및 동적 연동)
     with col_chat4:
         st.subheader("💬 지출 팩폭 상담가")
-        max_expense = edited_df.loc[edited_df["금액"].idxmax()]["카테고리"]
-        sys_prompt_4 = f"너는 지출 내역을 보고 팩트 폭격을 날려주는 깐깐한 상담가야. 사용자가 이번 주 '{max_expense}' 카테고리에 가장 많은 돈을 썼어. 정신 차리게 해주고 내일 당장 실천할 구체적인 절약 미션을 던져줘."
-        greeting_4 = f"이번 주 '{max_expense}'에 지출이 가장 많으시네요. 팩트 폭격과 함께 절약 미션을 받아보시겠어요?"
+        
+        # 에러 방지용 안전 조건문 추가 (데이터가 아예 비어있을 때 대비)
+        if not edited_df.empty and edited_df["금액"].sum() > 0:
+            max_expense = edited_df.loc[edited_df["금액"].idxmax()]["카테고리"]
+        else:
+            max_expense = "기타"
+            
+        sys_prompt_4 = f"너는 지출 내역을 보고 팩트 폭격을 날려주는 깐깐한 상담가야. 사용자가 6월달에 '{max_expense}' 카테고리에 가장 많은 돈을 썼어. 정신 차리게 해주고 내일 당장 실천할 구체적인 절약 미션을 던져줘."
+        greeting_4 = f"6월 한 달 동안 '{max_expense}'에 지출이 가장 많으시네요. 팩트 폭격과 함께 절약 미션을 받아보시겠어요?"
         
         if "messages_4" not in st.session_state:
             st.session_state.messages_4 = [{"role": "assistant", "content": greeting_4}]
