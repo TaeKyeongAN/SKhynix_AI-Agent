@@ -86,81 +86,62 @@ with col_visual:
     # 탭 1: 갓생 루틴 메이커 (레이아웃 높이 최종 정렬)
     # ---------------------------------------------------
     if mode == "⏱️ 갓생(God-생) 루틴 메이커":
-        st.subheader("📊 24시간 타임블록 설계")
-        
         # 색상 고정 맵핑
         color_map = {'수면': '#3498db', '업무': '#e74c3c', '자기계발': '#f1c40f', '휴식': '#2ecc71'}
-        
-        # [상단: 타임블록 설계 영역]
+
+        # [섹션 1: 24시간 타임블록 설계]
+        st.subheader("📊 24시간 타임블록 설계")
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            # 1. 차트 영역
-            inner_col1, inner_col2 = st.columns(2)
-            
-            with inner_col1:
+            c1, c2 = st.columns(2)
+            with c1:
                 st.markdown("#### 📉 통계 분석")
                 period = st.selectbox("기간 단위", ["요일별", "월별"], key="stat_period")
+                options = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"] if period == "요일별" else [f"{i}월" for i in range(1, 13)]
+                val = st.selectbox("항목 선택", options, key="stat_val")
                 
-                if period == "요일별":
-                    options_display = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
-                    val = st.selectbox("항목 선택", options_display, key="stat_val")
-                    display_title = f"{val} 데이터"
-                    day_key = val[0]
-                    base_data = {
-                        "월": [7, 10, 2, 5], "화": [7, 9, 2, 6], "수": [7, 9, 2, 6], 
-                        "목": [7, 9, 2, 6], "금": [7, 8, 2, 7], "토": [8, 2, 6, 8], "일": [9, 1, 6, 8]
-                    }
-                    data_values = base_data.get(day_key, [7, 8, 2, 7])
-                else:
-                    options_display = [f"{i}월" for i in range(1, 13)]
-                    val = st.selectbox("항목 선택", options_display, key="stat_val")
-                    display_title = f"{val} 데이터"
-                    month_num = int(val.replace("월", ""))
-                    if month_num in [6, 7, 8]: data_values = [7, 7, 3, 7]
-                    elif month_num == 12: data_values = [6, 11, 4, 3]
-                    else: data_values = [7, 9, 2, 6]
-                
+                # 데이터 로직
+                data_values = [7, 8, 2, 7] # 예시 데이터
                 df_stat = pd.DataFrame({'활동': ['수면', '업무', '자기계발', '휴식'], '시간': data_values})
-                fig_stat = px.pie(df_stat, values='시간', names='활동', title=display_title, color='활동', color_discrete_map=color_map)
+                fig_stat = px.pie(df_stat, values='시간', names='활동', title=f"{val} 데이터", color='활동', color_discrete_map=color_map)
                 fig_stat.update_layout(height=300, margin=dict(t=40, b=0, l=0, r=0))
                 st.plotly_chart(fig_stat, use_container_width=True)
             
-            with inner_col2:
+            with c2:
                 st.markdown("#### 📅 오늘의 계획")
-                sleep_h = st.slider("수면", 0.0, 24.0, 7.0, 0.5)
-                work_h = st.slider("업무", 0.0, 24.0, 9.0, 0.5)
-                study_h = st.slider("자기계발", 0.0, 24.0, 2.0, 0.5)
-                rest_h = 24.0 - (sleep_h + work_h + study_h)
-                
-                df_today = pd.DataFrame({'활동': ['수면', '업무', '자기계발', '휴식'], '시간': [sleep_h, work_h, study_h, max(0, rest_h)]})
+                s = st.slider("수면", 0.0, 24.0, 7.0, 0.5)
+                w = st.slider("업무", 0.0, 24.0, 9.0, 0.5)
+                st_h = st.slider("자기계발", 0.0, 24.0, 2.0, 0.5)
+                r = 24.0 - (s + w + st_h)
+                df_today = pd.DataFrame({'활동': ['수면', '업무', '자기계발', '휴식'], '시간': [s, w, st_h, r]})
                 fig_today = px.pie(df_today, values='시간', names='활동', title="현재 타임블록", color='활동', color_discrete_map=color_map)
                 fig_today.update_layout(height=300, margin=dict(t=40, b=0, l=0, r=0))
                 st.plotly_chart(fig_today, use_container_width=True)
 
         with col2:
-            st.markdown("#### 💬 AI 루틴 코치")
-            user_msg1 = st.text_input("질문을 입력하세요:", placeholder="루틴을 최적화하려면?")
-            if user_msg1:
-                st.info(f"AI: {val}의 루틴을 분석 중입니다... 🔍")
+            st.markdown("#### 💬 루틴 코칭 AI")
+            if prompt1 := st.chat_input("타임블록에 대해 물어보세요...", key="c1"):
+                st.chat_message("user").markdown(prompt1)
+                st.chat_message("assistant").markdown("루틴 분석 결과입니다.")
 
         st.markdown("---")
-        
-        # [하단: 감정 및 성취도 분석 영역]
-        st.subheader("📈 감정 및 성취도 분석")
+
+        # [섹션 2: 감정-성취도 상관관계 분석]
+        st.subheader("🧠 감정-성취도 상관관계 분석")
         col3, col4 = st.columns([2, 1])
         
         with col3:
-            # 예시 UI
-            mood = st.select_slider("오늘의 기분", options=["매우 나쁨", "나쁨", "보통", "좋음", "매우 좋음"])
-            achieve = st.slider("오늘의 성취도 (%)", 0, 100, 70)
-            st.write(f"현재 선택: 기분({mood}), 성취도({achieve}%)")
+            st.write(f"오늘 컨디션: **'{condition}'**")
+            # 차트 영역
+            df_insight = pd.DataFrame({"날짜": pd.date_range(end=today, periods=7), "컨디션": np.random.randint(30, 100, 7), "성취도": np.random.randint(30, 100, 7)})
+            st.line_chart(df_insight.set_index("날짜"))
             
         with col4:
             st.markdown("#### 💬 감정 분석 AI")
-            user_msg2 = st.text_input("상담하기:", placeholder="오늘 감정에 대해 적어보세요.")
-            if user_msg2:
-                st.success(f"AI: {user_msg2}라니 오늘 고생 많으셨네요! 힐링 루틴을 추천할까요?")
+            if prompt2 := st.chat_input("오늘 기분을 적어보세요...", key="c2"):
+                st.chat_message("user").markdown(prompt2)
+                st.chat_message("assistant").markdown("감정 분석을 통한 맞춤 조언입니다.")
 
     # ---------------------------------------------------
     # 탭 2: 스마트 재무 관리
