@@ -221,30 +221,102 @@ with tab1:
                 st.session_state.messages_1.append({"role": "assistant", "content": response_1.text})
 
 # ==========================================
-# 탭 2: 감정-성취도 상관관계 분석
+# 탭 2: 감정-성취도 상관관계 분석 (심화 버전)
 # ==========================================
 with tab2:
     col_vis2, col_chat2 = st.columns([6, 4])
     
     with col_vis2:
         st.subheader("🧠 감정-성취도 상관관계 분석")
-        st.write(f"오늘 안태경 님의 컨디션은 **'{condition}'** 입니다.")
         
-        dates = pd.date_range(end=today, periods=14)
-        condition_scores = np.random.randint(1, 4, size=14)
-        achievement = condition_scores * 25 + np.random.randint(-10, 10, size=14) 
+        # 1. 오늘의 데이터 입력 (UI 개선)
+        st.markdown("#### 📝 오늘의 기록")
+        st.caption("0(😥 피곤해요) ~ 50(😐 그저 그래요) ~ 100(😀 최고예요)")
         
-        df_insight = pd.DataFrame({
+        # 0, 50, 100에만 이모지가 표시되도록 포맷팅
+        def format_cond(val):
+            if val == 0: return "😥 0"
+            elif val == 50: return "😐 50"
+            elif val == 100: return "😀 100"
+            return str(val)
+
+        c1, c2, c3 = st.columns(3)
+        with c1: cond_morning = st.select_slider("아침", options=range(0, 101, 10), value=50, format_func=format_cond, key="cm")
+        with c2: cond_afternoon = st.select_slider("점심", options=range(0, 101, 10), value=70, format_func=format_cond, key="ca")
+        with c3: cond_evening = st.select_slider("저녁", options=range(0, 101, 10), value=40, format_func=format_cond, key="ce")
+        
+        st.write("")
+        st.markdown("#### 🎯 일일 성취도")
+        st.caption("💡 기준: 오늘 계획했던 핵심 루틴과 업무를 얼마나 달성했나요?")
+        achievement_today = st.slider("오늘의 성취도 (%)", 0, 100, 70, 10, key="achieve")
+        
+        avg_cond_today = (cond_morning + cond_afternoon + cond_evening) / 3
+        
+        st.markdown("---")
+        st.markdown("#### 📊 데이터 시각화 리포트")
+        
+        # 2. 가상 데이터 생성 (최근 13일 + 오늘)
+        dates = pd.date_range(end=today - timedelta(days=1), periods=13) 
+        df_mock = pd.DataFrame({
             "날짜": dates,
-            "컨디션": condition_scores * 30,
-            "성취도": achievement
+            "아침": np.random.randint(30, 100, 13),
+            "점심": np.random.randint(40, 100, 13),
+            "저녁": np.random.randint(20, 90, 13),
+            "성취도": np.random.randint(40, 100, 13)
         })
-        st.line_chart(df_insight.set_index("날짜"))
+        df_mock["일일_평균"] = df_mock[["아침", "점심", "저녁"]].mean(axis=1)
+        
+        # 오늘 데이터를 통합
+        df_today = pd.DataFrame({
+            "날짜": [today], "아침": [cond_morning], "점심": [cond_afternoon], "저녁": [cond_evening],
+            "성취도": [achievement_today], "일일_평균": [avg_cond_today]
+        })
+        df_history = pd.concat([df_mock, df_today], ignore_index=True)
+        df_history["요일"] = df_history["날짜"].dt.strftime("%a")
+        
+        # 차트 영역을 탭으로 분리하여 깔끔하게 배치
+        chart_tab1, chart_tab2, chart_tab3 = st.tabs(["📈 종합 추이", "⏰ 시간대별 패턴", "📅 요일별 분석"])
+        
+        with chart_tab1:
+            fig_trend = px.line(df_history, x="날짜", y=["일일_평균", "성취도"],
+                                labels={"value": "점수", "variable": "지표"},
+                                title="최근 2주 컨디션 vs 성취도 추이", markers=True)
+            fig_trend.update_layout(height=320, margin=dict(t=40, b=0, l=0, r=0))
+            st.plotly_chart(fig_trend, use_container_width=True)
+            
+        with chart_tab2:
+            time_avg = {"아침": df_history["아침"].mean(), "점심": df_history["점심"].mean(), "저녁": df_history["저녁"].mean()}
+            df_time = pd.DataFrame(list(time_avg.items()), columns=["시간대", "평균_컨디션"])
+            fig_time = px.bar(df_time, x="시간대", y="평균_컨디션", title="시간대별 평균 컨디션", color="시간대", color_discrete_sequence=px.colors.qualitative.Pastel)
+            fig_time.update_layout(height=320, margin=dict(t=40, b=0, l=0, r=0))
+            st.plotly_chart(fig_time, use_container_width=True)
+            
+        with chart_tab3:
+            day_order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+            df_history['요일'] = pd.Categorical(df_history['요일'], categories=day_order, ordered=True)
+            df_day = df_history.groupby("요일")[["일일_평균", "성취도"]].mean().reset_index()
+            fig_day = px.bar(df_day, x="요일", y=["일일_평균", "성취도"], barmode="group", title="요일별 평균 비교")
+            fig_day.update_layout(height=320, margin=dict(t=40, b=0, l=0, r=0))
+            st.plotly_chart(fig_day, use_container_width=True)
 
     with col_chat2:
         st.subheader("💬 멘탈/성취도 맞춤 코칭")
-        sys_prompt_2 = f"너는 직장인의 멘탈과 성취도를 관리해주는 따뜻한 상담가야. 사용자의 오늘 컨디션은 '{condition}'이야. 이를 바탕으로 멘탈 관리법이나 성취도 향상 팁을 제공해줘."
-        greeting_2 = f"오늘 컨디션이 '{condition}'이시네요. 최근 2주간의 감정과 성취도 흐름에 대해 이야기 나눠볼까요?"
+        
+        # AI 프롬프트에 아침/점심/저녁 데이터와 성취도 주입
+        sys_prompt_2 = f"""
+        너는 직장인의 멘탈과 성취도를 관리해주는 따뜻하고 예리한 상담가야.
+        오늘 사용자의 데이터:
+        - 아침 컨디션: {cond_morning}/100
+        - 점심 컨디션: {cond_afternoon}/100
+        - 저녁 컨디션: {cond_evening}/100
+        - 하루 평균: {avg_cond_today:.1f}/100
+        - 오늘의 달성률(성취도): {achievement_today}%
+        
+        이 데이터를 바탕으로 오늘 하루 감정의 기복이 어땠는지 캐치해주고(예: 저녁에 급격히 떨어짐 등), 
+        달성률과 엮어서 내일을 위한 멘탈 케어 팁을 2~3문장으로 다정하게 제공해줘.
+        """
+        
+        greeting_2 = f"감정의 흐름(아침 {cond_morning} ➡️ 점심 {cond_afternoon} ➡️ 저녁 {cond_evening})을 기록해주셨네요! 달성률 {achievement_today}%와 엮어서 오늘 하루를 리뷰해 드릴까요?"
         
         if "messages_2" not in st.session_state:
             st.session_state.messages_2 = [{"role": "assistant", "content": greeting_2}]
