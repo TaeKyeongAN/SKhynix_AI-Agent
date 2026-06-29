@@ -378,67 +378,73 @@ with tab2:
                 st.session_state.messages_2.append({"role": "assistant", "content": response_2.text})
 
 # ==========================================
-# 탭 3: 월급 시뮬레이터 (원 단위 & 고정지출 상세 관리)
+# 탭 3: 월급 시뮬레이터 (투자 중심 & 시각화 디테일)
 # ==========================================
 with tab3:
     col_vis3, col_chat3 = st.columns([6, 4])
     
     with col_vis3:
-        st.subheader("📈 첫 월급 자산 관리")
+        st.subheader("📈 투자 중심 자산 시뮬레이터")
         net_salary = 3750000 
         
-        # 1. 공간 압축: 메트릭을 최상단 배치
-        st.caption(f"예상 세후 실수령액: **{net_salary:,}원**")
-        
-        # 2. 고정 지출 리스트 (expander로 숨겨서 공간 확보)
-        with st.expander("🏠 정기 결제 고정 지출 관리 (클릭)", expanded=False):
+        # 1. 고정 지출 설정
+        with st.expander("🏠 고정 지출 상세 관리", expanded=False):
             fixed_expenses_data = pd.DataFrame([
                 {"항목": "휴대폰", "금액": 105000}, {"항목": "구글 AI", "금액": 29000},
-                {"항목": "유튜브", "금액": 15000}, {"항목": "넷플릭스", "금액": 13500},
-                {"항목": "카카오톡", "금액": 6000}, {"항목": "티빙", "금액": 5500}
+                {"항목": "유튜브", "금액": 15000}, {"항목": "넷플릭스", "금액": 13500}
             ])
             edited_fixed = st.data_editor(fixed_expenses_data, num_rows="dynamic", use_container_width=True)
-        
         total_fixed = edited_fixed["금액"].sum()
         
-        # 3. 예산 설정 (컴팩트하게 배치)
+        # 2. 투자/저축 설정
         c1, c2 = st.columns(2)
         with c1:
-            amt_save = st.number_input("💰 저축/투자액", 0, net_salary, 1500000, 10000)
+            amt_save = st.number_input("💰 월 투자액 (원)", min_value=0, max_value=net_salary, value=1000000, step=100000)
         with c2:
-            ret_rate = st.slider("📊 연 기대 수익률(%)", 0.0, 10.0, 4.0, 0.1)
-        
+            ret_rate = st.slider("📊 연 기대 수익률 (%)", -5.0, 20.0, 4.0, 0.5)
+            
         amt_flex = net_salary - total_fixed - amt_save
-        
-        # 메트릭 압축 배치
         m1, m2, m3 = st.columns(3)
-        m1.metric("저축/투자", f"{amt_save:,}원")
+        m1.metric("월 투자액", f"{amt_save:,}원")
         m2.metric("고정지출", f"{total_fixed:,}원")
         m3.metric("남은 생활비", f"{amt_flex:,}원")
         
-        if amt_flex < 0: st.error("⚠️ 예산 초과!")
-            
         st.markdown("---")
         
-        # 4. 자산 성장 시뮬레이션 디벨롭 (스태킹 바 + 라인)
-        st.markdown("#### 📊 5년 자산 성장 타임라인")
-        years = list(range(1, 6))
-        data = []
+        # 3. 데이터 계산 (연도별)
+        years = np.arange(1, 6)
+        results = []
         for y in years:
             months = y * 12
-            principal = amt_save * months
-            interest = 0
-            curr = 0
-            for _ in range(months): curr = (curr + amt_save) * (1 + (ret_rate/100)/12)
-            interest = curr - principal
-            data.append({"년차": f"{y}년", "원금": principal, "이자": interest})
-            
-        df_g = pd.DataFrame(data)
-        # 이자와 원금을 쌓아서 보여줌
-        fig_g = px.bar(df_g, x="년차", y=["원금", "이자"], title="원금 vs 이자 누적 수익",
-                       color_discrete_map={"원금": "#3498db", "이자": "#f1c40f"})
-        st.plotly_chart(fig_g, use_container_width=True)
+            # 복리 계산
+            fv = 0
+            for m in range(months): fv = (fv + amt_save) * (1 + (ret_rate/100)/12)
+            results.append({"년차": f"{y}년", "자산(만원)": fv/10000, "원금(만원)": (amt_save*months)/10000})
 
+        df_g = pd.DataFrame(results)
+        df_g["수익(만원)"] = df_g["자산(만원)"] - df_g["원금(만원)"]
+        
+        # 4. 탭별 시각화
+        sub1, sub2, sub3 = st.tabs(["📊 자산 성장 추이", "⚖️ 수익률 시나리오", "📉 누적 손익 분석"])
+        
+        with sub1:
+            fig1 = px.bar(df_g, x="년차", y="자산(만원)", title="5년 자산 성장 추이", text_auto='.0f')
+            st.plotly_chart(fig1, use_container_width=True)
+            
+        with sub2:
+            scenarios = []
+            for r in [ret_rate-5, ret_rate, ret_rate+5]:
+                fv = 0
+                for m in range(5*12): fv = (fv + amt_save) * (1 + (r/100)/12)
+                scenarios.append({"수익률": f"{r}%", "5년후 자산(억)": fv/100000000})
+            fig2 = px.line(pd.DataFrame(scenarios), x="수익률", y="5년후 자산(억)", markers=True, title="수익률별 5년 후 자산 시나리오")
+            st.plotly_chart(fig2, use_container_width=True)
+            
+        with sub3:
+            # 마이너스 수익률도 표현 가능한 누적 수익 그래프
+            fig3 = px.bar(df_g, x="년차", y=["원금(만원)", "수익(만원)"], title="원금 대비 누적 손익", barmode="relative")
+            st.plotly_chart(fig3, use_container_width=True)
+            
     with col_chat3:
         st.subheader("💬 재무 상담가 코멘트")
         sys_prompt_3 = f"""
