@@ -81,14 +81,13 @@ tab1, tab2, tab3, tab4 = st.tabs([
 ])
 
 # ==========================================
-# 탭 1: 갓생 루틴 메이커 (타임블록) - 리얼리티 & 프롬프트 개선
+# 탭 1: 갓생 루틴 메이커 (타임블록) - AI 자동 비교 코멘트 추가
 # ==========================================
 with tab1:
     col_vis1, col_chat1 = st.columns([6, 4])
     
     with col_vis1:
         st.subheader("📊 24시간 타임블록 설계")
-        # '휴식' -> '일상/휴식'으로 네이밍 변경
         color_map = {'수면': '#3498db', '업무': '#e74c3c', '자기계발': '#f1c40f', '일상/휴식': '#2ecc71'}
         col_left, col_right = st.columns(2)
         
@@ -101,7 +100,6 @@ with tab1:
                 val = st.selectbox("항목 선택", options_display, key="stat_val")
                 display_title = f"{val} 평균 데이터"
                 day_key = val[0] 
-                # 소수점 단위의 리얼한 요일별 데이터 (합계 24시간)
                 base_data_day = {
                     "월": [6.8, 9.5, 1.2, 6.5], "화": [7.1, 9.2, 1.5, 6.2], 
                     "수": [6.9, 9.4, 1.8, 5.9], "목": [7.2, 8.8, 2.1, 5.9], 
@@ -114,7 +112,6 @@ with tab1:
                 val = st.selectbox("항목 선택", options_display, key="stat_val2")
                 display_title = f"{val} 평균 데이터"
                 month_num = val.replace("월", "")
-                # 소수점 단위의 리얼한 월별 데이터 (합계 24시간)
                 base_data_month = {
                     "1": [7.3, 8.6, 2.4, 5.7], "2": [7.1, 8.9, 2.1, 5.9], 
                     "3": [6.9, 9.3, 1.8, 6.0], "4": [7.0, 9.1, 1.9, 6.0],
@@ -133,7 +130,6 @@ with tab1:
         # [오른쪽: 오늘의 계획]
         with col_right:
             st.markdown("#### 📅 오늘의 계획")
-            
             weekday_kr = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"][today.weekday()]
             st.info(f"📅 **현재 날짜:** {today.strftime('%Y년 %m월 %d일')} ({weekday_kr})")
             
@@ -152,10 +148,28 @@ with tab1:
                 fig_today = px.pie(df_today, values='시간', names='활동', title="현재 타임블록", color='활동', color_discrete_map=color_map)
                 fig_today.update_layout(height=350, margin=dict(t=50, b=0, l=0, r=0))
                 st.plotly_chart(fig_today, use_container_width=True)
+        
+        # [NEW: AI 패턴 비교 분석 영역]
+        st.markdown("---")
+        st.markdown("#### 🤖 AI 패턴 비교 분석")
+        
+        # 슬라이더 과부하 방지를 위한 버튼 클릭 방식
+        if st.button("✨ 평균 데이터 vs 오늘 계획 비교하기"):
+            with st.spinner("AI가 패턴을 비교 분석 중입니다..."):
+                compare_prompt = f"""
+                너는 팩트 기반의 따뜻한 루틴 코치야.
+                [선택한 통계 ({display_title})] 수면 {data_values[0]}h, 업무 {data_values[1]}h, 자기계발 {data_values[2]}h, 일상/휴식 {data_values[3]}h
+                [오늘의 계획] 수면 {sleep_h}h, 업무 {work_h}h, 자기계발 {study_h}h, 일상/휴식 {rest_h:.1f}h
                 
+                이 두 데이터를 비교해서, 오늘 계획이 평소보다 어떤 점이 나아졌는지, 혹은 무리하고 있는 부분은 없는지 2~3줄로 짧고 임팩트 있게 코멘트해줘.
+                (일상/휴식 시간은 단순 노는 시간이 아니라 밥 먹고 씻는 필수 생활 시간임도 감안할 것)
+                """
+                compare_response = model.generate_content(compare_prompt)
+                st.success(compare_response.text)
+                
+    # [우측: 채팅 영역]
     with col_chat1:
         st.subheader("💬 타임블록 맞춤 코칭")
-        # 프롬프트 디테일 강화 (일상/휴식 시간에 대한 AI 인지 조정)
         sys_prompt_1 = f"""
         너는 직장인을 위한 현실적이고 다정한 루틴 코치야.
         현재 사용자의 컨디션은 '{condition}' 상태야.
