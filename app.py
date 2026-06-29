@@ -86,62 +86,93 @@ with col_visual:
     # 탭 1: 갓생 루틴 메이커 (레이아웃 높이 최종 정렬)
     # ---------------------------------------------------
     if mode == "⏱️ 갓생(God-생) 루틴 메이커":
+        st.subheader("📊 24시간 타임블록 설계")
+        
         # 색상 고정 맵핑
         color_map = {'수면': '#3498db', '업무': '#e74c3c', '자기계발': '#f1c40f', '휴식': '#2ecc71'}
-
-        # [섹션 1: 24시간 타임블록 설계]
-        st.subheader("📊 24시간 타임블록 설계")
-        col1, col2 = st.columns([2, 1])
         
-        with col1:
-            c1, c2 = st.columns(2)
-            with c1:
-                st.markdown("#### 📉 통계 분석")
-                period = st.selectbox("기간 단위", ["요일별", "월별"], key="stat_period")
-                options = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"] if period == "요일별" else [f"{i}월" for i in range(1, 13)]
-                val = st.selectbox("항목 선택", options, key="stat_val")
-                
-                # 데이터 로직
-                data_values = [7, 8, 2, 7] # 예시 데이터
-                df_stat = pd.DataFrame({'활동': ['수면', '업무', '자기계발', '휴식'], '시간': data_values})
-                fig_stat = px.pie(df_stat, values='시간', names='활동', title=f"{val} 데이터", color='활동', color_discrete_map=color_map)
-                fig_stat.update_layout(height=300, margin=dict(t=40, b=0, l=0, r=0))
-                st.plotly_chart(fig_stat, use_container_width=True)
+        col_left, col_right = st.columns(2)
+        
+        # [왼쪽: 통계 분석]
+        with col_left:
+            st.markdown("#### 📉 통계 분석")
+            period = st.selectbox("기간 단위", ["요일별", "월별"], key="stat_period")
             
-            with c2:
-                st.markdown("#### 📅 오늘의 계획")
-                s = st.slider("수면", 0.0, 24.0, 7.0, 0.5)
-                w = st.slider("업무", 0.0, 24.0, 9.0, 0.5)
-                st_h = st.slider("자기계발", 0.0, 24.0, 2.0, 0.5)
-                r = 24.0 - (s + w + st_h)
-                df_today = pd.DataFrame({'활동': ['수면', '업무', '자기계발', '휴식'], '시간': [s, w, st_h, r]})
-                fig_today = px.pie(df_today, values='시간', names='활동', title="현재 타임블록", color='활동', color_discrete_map=color_map)
-                fig_today.update_layout(height=300, margin=dict(t=40, b=0, l=0, r=0))
+            # 요일/월별 옵션 구성 (선택 시 '월요일' 처럼 보이도록 수정)
+            if period == "요일별":
+                options_display = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
+                val = st.selectbox("항목 선택", options_display, key="stat_val")
+                display_title = f"{val} 데이터"
+                
+                # 요일별 특성 데이터 매핑 (한글 텍스트에서 한 글자만 추출하여 로직 처리)
+                day_key = val[0] 
+                base_data = {
+                    "월": [7, 10, 2, 5], "화": [7, 9, 2, 6], "수": [7, 9, 2, 6], 
+                    "목": [7, 9, 2, 6], "금": [7, 8, 2, 7], "토": [8, 2, 6, 8], "일": [9, 1, 6, 8]
+                }
+                data_values = base_data.get(day_key, [7, 8, 2, 7])
+            else:
+                options_display = [f"{i}월" for i in range(1, 13)]
+                val = st.selectbox("항목 선택", options_display, key="stat_val")
+                display_title = f"{val} 데이터"
+                
+                # 월별 특성 데이터
+                month_num = int(val.replace("월", ""))
+                if month_num in [6, 7, 8]: data_values = [7, 7, 3, 7] # 여름
+                elif month_num == 12: data_values = [6, 11, 4, 3]    # 연말
+                else: data_values = [7, 9, 2, 6]                     # 평시
+            
+            df_stat = pd.DataFrame({'활동': ['수면', '업무', '자기계발', '휴식'], '시간': data_values})
+            fig_stat = px.pie(df_stat, values='시간', names='활동', 
+                              title=f"{display_title}",
+                              color='활동', color_discrete_map=color_map)
+            fig_stat.update_layout(height=350, margin=dict(t=50, b=0, l=0, r=0))
+            st.plotly_chart(fig_stat, use_container_width=True)
+
+        # [오른쪽: 오늘의 계획]
+        with col_right:
+            st.markdown("#### 📅 오늘의 계획")
+            
+            c1, c2, c3 = st.columns(3)
+            with c1: sleep_h = st.slider("수면", 0.0, 24.0, 7.0, 0.5)
+            with c2: work_h = st.slider("업무", 0.0, 24.0, 9.0, 0.5)
+            with c3: study_h = st.slider("자기계발", 0.0, 24.0, 2.0, 0.5)
+            rest_h = 24.0 - (sleep_h + work_h + study_h)
+            
+            st.write("") 
+            st.write("")
+            st.write("")
+            st.write("")
+            st.write("")
+                        
+            if rest_h < 0:
+                st.error("시간 합계 초과!")
+            else:
+                df_today = pd.DataFrame({'활동': ['수면', '업무', '자기계발', '휴식'], '시간': [sleep_h, work_h, study_h, rest_h]})
+                fig_today = px.pie(df_today, values='시간', names='활동', 
+                                   title="현재 타임블록",
+                                   color='활동', color_discrete_map=color_map)
+                fig_today.update_layout(height=350, margin=dict(t=50, b=0, l=0, r=0))
                 st.plotly_chart(fig_today, use_container_width=True)
-
-        with col2:
-            st.markdown("#### 💬 루틴 코칭 AI")
-            if prompt1 := st.chat_input("타임블록에 대해 물어보세요...", key="c1"):
-                st.chat_message("user").markdown(prompt1)
-                st.chat_message("assistant").markdown("루틴 분석 결과입니다.")
-
+        
         st.markdown("---")
 
-        # [섹션 2: 감정-성취도 상관관계 분석]
+        # 2. 감정-컨디션 상관관계 분석기 (Plotly 사용)
         st.subheader("🧠 감정-성취도 상관관계 분석")
-        col3, col4 = st.columns([2, 1])
+        st.write(f"오늘 안태경 님의 컨디션은 **'{condition}'** 입니다.")
         
-        with col3:
-            st.write(f"오늘 컨디션: **'{condition}'**")
-            # 차트 영역
-            df_insight = pd.DataFrame({"날짜": pd.date_range(end=today, periods=7), "컨디션": np.random.randint(30, 100, 7), "성취도": np.random.randint(30, 100, 7)})
-            st.line_chart(df_insight.set_index("날짜"))
-            
-        with col4:
-            st.markdown("#### 💬 감정 분석 AI")
-            if prompt2 := st.chat_input("오늘 기분을 적어보세요...", key="c2"):
-                st.chat_message("user").markdown(prompt2)
-                st.chat_message("assistant").markdown("감정 분석을 통한 맞춤 조언입니다.")
+        dates = pd.date_range(end=today, periods=14)
+        condition_scores = np.random.randint(1, 4, size=14)
+        achievement = condition_scores * 25 + np.random.randint(-10, 10, size=14) 
+        
+        df_insight = pd.DataFrame({
+            "날짜": dates,
+            "컨디션": condition_scores * 30,
+            "성취도": achievement
+        })
+        st.line_chart(df_insight.set_index("날짜"))
+        
+        st.markdown("---")
 
     # ---------------------------------------------------
     # 탭 2: 스마트 재무 관리
