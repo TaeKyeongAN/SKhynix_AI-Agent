@@ -76,7 +76,7 @@ st.title("🚀 Hy-Fi Agent: 내 손안의 AI 라이프 매니저")
 # 기능별로 4개의 탭 생성
 tab1, tab2, tab3, tab4 = st.tabs([
     "⏱️ 24시간 타임블록 설계", 
-    "🧠 감정-성취도 분석", 
+    "🧠 컨디션-성취도 분석", 
     "📈 월급 시뮬레이터", 
     "💸 소비 패턴 분석"
 ])
@@ -212,13 +212,13 @@ with tab1:
                 st.session_state.messages_1.append({"role": "assistant", "content": response_1.text})
 
 # ==========================================
-# 탭 2: 감정-성취도 상관관계 분석 
+# 탭 2: 컨디션-성취도 상관관계 분석 
 # ==========================================
 with tab2:
     col_vis2, col_chat2 = st.columns([6, 4])
     
     with col_vis2:
-        st.subheader("🧠 감정-성취도 상관관계 분석")
+        st.subheader("🧠 컨디션-성취도 상관관계 분석")
         
         st.markdown("#### 📝 오늘의 기록")
         
@@ -360,7 +360,7 @@ with tab3:
     
     with col_vis3:
         st.markdown("### 📈 월급 시뮬레이터")
-        st.info("ℹ️ 하단 시뮬레이션은 초봉 월 실수령액 **3,750,000원**을 기준으로 계산됩니다.")
+        st.info("ℹ️ 하단 시뮬레이션은 예상 월 실수령액 **3,750,000원**을 기준으로 계산됩니다.")
         
         net_salary = 3750000 
         
@@ -384,14 +384,14 @@ with tab3:
         amt_flex = net_salary - total_fixed - amt_save
         
         m1, m2, m3 = st.columns(3)
-        m1.metric("월 투자액", f"{amt_save:,} 원")
+        m1.metric("월 저축/투자액", f"{amt_save:,} 원")
         m2.metric("고정 지출 합계", f"{total_fixed:,} 원")
         m3.metric("남은 생활비", f"{amt_flex:,} 원")
         
         if amt_flex < 0:
             st.error("⚠️ 설정한 예산이 월급을 초과했습니다!")
         
-        tab_basic, tab_bonus = st.tabs(["📊 5개년 자산 로드맵", "🚀 성과급 포함 시뮬레이션 (체험판)"])
+        tab_basic, tab_bonus = st.tabs(["📊 5개년 자산 로드맵", "🚀 성과급 시뮬레이션 (체험판)"])
         
         def format_kr_won(val):
             sign = "-" if val < 0 else ""
@@ -431,7 +431,7 @@ with tab3:
 
         with tab_bonus:
             with st.popover("ℹ️ 성과급 계산 방식 보기"):
-                st.write("**[SK하이닉스 보상 구조]**")
+                st.write("**[예상 성과급 시스템 가정]**")
                 st.caption("- 기본급: 연봉(월 실수령액 375만×12) / 20")
                 st.caption("- PI(생산성 격려금): 기본급의 200% (연간)")
                 st.caption("- PS(초과이익 성과급): 기본급의 1000% 가정")
@@ -460,7 +460,7 @@ with tab3:
             df_b["금액_텍스트"] = df_b["금액"].apply(format_kr_won)
             
             fig_b = px.bar(df_b, x="년차", y=df_b["금액"]/10000, color="구분",
-                           title=f"🚀 연봉+성과급(세후 반영) 5개년 자산 로드맵",
+                           title=f"🚀 예상 성과급 반영 5개년 자산 로드맵",
                            barmode="relative", text="금액_텍스트",
                            color_discrete_map={"원금": "#7f8c8d", "성과급": "#ffcc99", "손익": ("#e74c3c" if ret_rate > 0 else "#3498db")})
             fig_b.update_traces(textposition='auto', insidetextanchor='middle')
@@ -518,7 +518,7 @@ with tab4:
         }
         
     with col_vis4:
-        st.subheader("💸 소비 패턴 분석 및 컨설팅")
+        st.subheader("💸 소비 패턴 분석")
         
         months_list = [f"{i}월" for i in range(1, 13)]
         selected_month = st.selectbox("분석할 월을 선택하세요", options=months_list, index=5)
