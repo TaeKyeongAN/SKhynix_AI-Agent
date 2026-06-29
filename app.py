@@ -532,110 +532,132 @@ with tab3:
                 st.session_state.messages_3.append({"role": "assistant", "content": response_3.text})
 
 # ==========================================
-# 탭 4: 소비 패턴 분석 및 팩폭 컨설팅 (완벽 통합 버전)
+# 탭 4: 소비 패턴 분석 및 팩폭 컨설팅 (월별 동적 데이터 & 리얼리티 반영)
 # ==========================================
 with tab4:
     col_vis4, col_chat4 = st.columns([6, 4])
     
+    # 1. 1월~12월 세션 데이터 초기화 (고정지출 17.4만 고정, 백원 단위 디테일)
+    categories = ["고정지출", "식비", "교통비", "쇼핑/생활", "문화/여가", "건강/미용"]
+    if "monthly_expenses" not in st.session_state:
+        st.session_state.monthly_expenses = {
+            "1월": [174000, 845200, 125400, 452300, 215000, 85400],
+            "2월": [174000, 712500, 110500, 310500, 150000, 65000],
+            "3월": [174000, 550300, 95000, 185200, 120500, 45000],
+            "4월": [174000, 520100, 98000, 150400, 95000, 40000],
+            "5월": [174000, 680500, 130200, 380500, 175000, 95500],
+            "6월": [174000, 920500, 145800, 620500, 280000, 110500],
+            "7월": [174000, 0, 0, 0, 0, 0],
+            "8월": [174000, 0, 0, 0, 0, 0],
+            "9월": [174000, 0, 0, 0, 0, 0],
+            "10월": [174000, 0, 0, 0, 0, 0],
+            "11월": [174000, 0, 0, 0, 0, 0],
+            "12월": [174000, 0, 0, 0, 0, 0]
+        }
+        
     with col_vis4:
         st.subheader("💸 소비 패턴 분석 및 팩폭 컨설팅")
         
-        # 1. 6월 지출 내역 기본값 세팅 (탭3 고정지출 및 현실적 소비 반영)
-        df_expenses = pd.DataFrame([
-            {"카테고리": "식비(배달 포함)", "금액": 1200000},
-            {"카테고리": "교통비", "금액": 200000},
-            {"카테고리": "쇼핑/자기계발", "금액": 800000},
-            {"카테고리": "기타", "금액": 500000}
-        ])
+        # 월 선택 UI
+        months_list = [f"{i}월" for i in range(1, 13)]
+        selected_month = st.selectbox("분석할 월을 선택하세요", options=months_list, index=5) # 기본값 6월
         
-        st.markdown("##### ✍️ 6월 지출 내역 편집 (금액을 변경하면 리포트와 AI가 실시간으로 반응합니다)")
-        edited_df = st.data_editor(df_expenses, num_rows="dynamic", use_container_width=True, key="expense_editor")
-        
-        # 6월 총합 계산 (차트 실시간 연동용)
-        june_total = edited_df["금액"].sum() if not edited_df.empty else 0
-        
-        st.write("")
-        # 2. 차트 레이아웃 분할 (나란히 배치하여 공간 활용 최적화)
-        c1, c2 = st.columns(2)
-        
-        with c1:
-            st.markdown("<p style='font-size:14px; font-weight:bold; margin-bottom:0;'>📅 월별 총 지출 추이 (7~12월 미집계)</p>", unsafe_allow_html=True)
-            # 1,6월 높음 / 2,5월 보통 / 3,4월 낮음 / 7~12월 미집계 반영
-            months = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"]
-            spending_data = [2600000, 1800000, 1200000, 1100000, 1900000, june_total, 0, 0, 0, 0, 0, 0]
-            df_monthly = pd.DataFrame({"월": months, "지출액": spending_data})
+        # Expander로 편집창 숨김 처리
+        with st.expander(f"✍️ {selected_month} 지출 내역 편집 (항목 변경 시 실시간 반영)", expanded=False):
+            df_current = pd.DataFrame({
+                "카테고리": categories,
+                "금액": st.session_state.monthly_expenses[selected_month]
+            })
+            edited_df = st.data_editor(df_current, use_container_width=True, key=f"editor_{selected_month}")
             
-            fig_trend = px.bar(df_monthly, x="월", y="지출액", text_auto='.2s', color_discrete_sequence=["#3498db"])
+            # 편집된 내용을 세션 스테이트에 저장 (동적 연동)
+            st.session_state.monthly_expenses[selected_month] = edited_df["금액"].tolist()
+            
+        st.write("")
+        
+        # 전체 월 합계 계산 (추이 그래프용)
+        monthly_totals = [sum(st.session_state.monthly_expenses[m]) for m in months_list]
+        df_trend = pd.DataFrame({"월": months_list, "지출액": monthly_totals})
+        
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown(f"<p style='font-size:14px; font-weight:bold; margin-bottom:0;'>📅 연간 총 지출 추이</p>", unsafe_allow_html=True)
+            # 현재 선택된 월만 다른 색상으로 하이라이트
+            colors = ["#e74c3c" if m == selected_month else "#3498db" for m in months_list]
+            fig_trend = px.bar(df_trend, x="월", y="지출액", text_auto='.2s', color="월", color_discrete_sequence=colors)
             fig_trend.update_layout(height=260, margin=dict(t=10, b=10, l=0, r=0), showlegend=False, yaxis_title="")
             st.plotly_chart(fig_trend, use_container_width=True)
             
         with c2:
-            st.markdown("<p style='font-size:14px; font-weight:bold; margin-bottom:0;'>🥧 6월 지출 카테고리 분포</p>", unsafe_allow_html=True)
-            fig_pie = px.pie(edited_df, values="금액", names="카테고리", hole=0.3,
-                             color_discrete_sequence=px.colors.qualitative.Pastel)
-            fig_pie.update_layout(height=260, margin=dict(t=10, b=10, l=0, r=0))
-            st.plotly_chart(fig_pie, use_container_width=True)
-            
+            st.markdown(f"<p style='font-size:14px; font-weight:bold; margin-bottom:0;'>🥧 {selected_month} 카테고리 분포</p>", unsafe_allow_html=True)
+            # 0원인 항목은 파이 차트에서 보이지 않도록 필터링
+            df_pie = edited_df[edited_df["금액"] > 0]
+            if not df_pie.empty:
+                fig_pie = px.pie(df_pie, values="금액", names="카테고리", hole=0.3, color_discrete_sequence=px.colors.qualitative.Pastel)
+                fig_pie.update_layout(height=260, margin=dict(t=10, b=10, l=0, r=0))
+                st.plotly_chart(fig_pie, use_container_width=True)
+            else:
+                st.info(f"{selected_month} 지출 내역이 없습니다.")
+                
         st.markdown("---")
         
-        # 3. 최신달(6월) vs 그 직전달(5월) 항목별 비교 분석
-        st.markdown("##### 📈 전월 대비 항목별 증감 분석 (5월 vs 6월)")
-        
-        # 5월 기준 고정 데이터 (보통 수준의 소비 패턴 지출액)
-        may_data = {
-            "식비(배달 포함)": 900000,
-            "교통비": 180000,
-            "쇼핑/자기계발": 500000,
-            "기타": 320000
-        }
-        
-        comp_results = []
-        for _, row in edited_df.iterrows():
-            cat = row["카테고리"]
-            june_val = row["금액"]
-            may_val = may_data.get(cat, 0) # 새 카테고리 추가 시 5월은 0원 처리
-            diff = june_val - may_val
-            comp_results.append({"카테고리": cat, "증감": diff})
+        # 전월 대비 증감 분석 (1월 선택 시에는 비교 생략)
+        curr_idx = months_list.index(selected_month)
+        if curr_idx > 0:
+            prev_month = months_list[curr_idx - 1]
+            st.markdown(f"##### 📈 전월 대비 항목별 증감 분석 ({prev_month} vs {selected_month})")
             
-        df_comp = pd.DataFrame(comp_results)
-        df_comp["금액_텍스트"] = df_comp["증감"].apply(lambda x: f"+{x:,}원" if x > 0 else f"{x:,}원")
-        
-        # 지출 증가=빨간색(#e74c3c), 지출 감소=초록색(#2ecc71) 다이내믹 매핑
-        fig_diff = px.bar(df_comp, x="카테고리", y="증감", text="금액_텍스트",
-                          color=df_comp["증감"] > 0,
-                          color_discrete_map={True: "#e74c3c", False: "#2ecc71"})
-        fig_diff.update_traces(textposition='auto')
-        fig_diff.update_layout(height=280, margin=dict(t=10, b=10, l=0, r=0), showlegend=False, yaxis_title="증감액 (원)")
-        st.plotly_chart(fig_diff, use_container_width=True)
+            comp_data = []
+            for i, cat in enumerate(categories):
+                curr_val = st.session_state.monthly_expenses[selected_month][i]
+                prev_val = st.session_state.monthly_expenses[prev_month][i]
+                diff = curr_val - prev_val
+                comp_data.append({"카테고리": cat, "증감": diff})
+                
+            df_comp = pd.DataFrame(comp_data)
+            df_comp["금액_텍스트"] = df_comp["증감"].apply(lambda x: f"+{x:,}원" if x > 0 else f"{x:,}원" if x < 0 else "변동 없음")
+            
+            fig_diff = px.bar(df_comp, x="카테고리", y="증감", text="금액_텍스트",
+                              color=df_comp["증감"] > 0,
+                              color_discrete_map={True: "#e74c3c", False: "#2ecc71"})
+            fig_diff.update_traces(textposition='auto')
+            fig_diff.update_layout(height=280, margin=dict(t=10, b=10, l=0, r=0), showlegend=False, yaxis_title="증감액 (원)")
+            st.plotly_chart(fig_diff, use_container_width=True)
+        else:
+            st.markdown("##### 📈 전월 대비 항목별 증감 분석")
+            st.info("1월은 이전 데이터가 없어 증감 비교를 제공하지 않습니다.")
 
-    # 4. 오른쪽 AI 팩폭 채팅창 영역 (뼈대 코드 완벽 복구 및 동적 연동)
+    # 4. 오른쪽 AI 팩폭 채팅창 영역
     with col_chat4:
         st.subheader("💬 지출 팩폭 상담가")
         
-        # 에러 방지용 안전 조건문 추가 (데이터가 아예 비어있을 때 대비)
-        if not edited_df.empty and edited_df["금액"].sum() > 0:
-            max_expense = edited_df.loc[edited_df["금액"].idxmax()]["카테고리"]
+        # 고정지출은 팩폭 대상에서 제외하고, 변동 지출 중 가장 큰 금액 찾기
+        df_variable = edited_df[edited_df["카테고리"] != "고정지출"]
+        if not df_variable.empty and df_variable["금액"].sum() > 0:
+            max_expense = df_variable.loc[df_variable["금액"].idxmax()]["카테고리"]
         else:
-            max_expense = "기타"
+            max_expense = "지출 없음"
             
-        sys_prompt_4 = f"너는 지출 내역을 보고 팩트 폭격을 날려주는 깐깐한 상담가야. 사용자가 6월달에 '{max_expense}' 카테고리에 가장 많은 돈을 썼어. 정신 차리게 해주고 내일 당장 실천할 구체적인 절약 미션을 던져줘."
-        greeting_4 = f"6월 한 달 동안 '{max_expense}'에 지출이 가장 많으시네요. 팩트 폭격과 함께 절약 미션을 받아보시겠어요?"
+        sys_prompt_4 = f"너는 지출 내역을 보고 팩트 폭격을 날려주는 깐깐한 상담가야. 사용자가 {selected_month}에 '{max_expense}' 카테고리에 가장 많은 돈을 썼어. 정신 차리게 해주고 내일 당장 실천할 구체적인 절약 미션을 던져줘."
+        greeting_4 = f"{selected_month}에는 변동 지출 중 '{max_expense}' 항목이 가장 높으시네요. 팩트 폭격과 함께 절약 미션을 받아보시겠어요?"
         
-        if "messages_4" not in st.session_state:
-            st.session_state.messages_4 = [{"role": "assistant", "content": greeting_4}]
+        # 월이 바뀌면 채팅창을 리셋하기 위한 로직 (세션 키에 월 포함)
+        chat_key = f"messages_4_{selected_month}"
+        if chat_key not in st.session_state:
+            st.session_state[chat_key] = [{"role": "assistant", "content": greeting_4}]
             
         chat_container_4 = st.container(height=550)
         with chat_container_4:
-            for msg in st.session_state.messages_4:
+            for msg in st.session_state[chat_key]:
                 with st.chat_message(msg["role"]):
                     st.write(msg["content"])
                     
-        user_input_4 = st.chat_input("지출 관리에 대해 질문하기...", key="chat_in_4")
+        user_input_4 = st.chat_input(f"{selected_month} 지출 관리에 대해 질문하기...", key=f"chat_in_4_{selected_month}")
         if user_input_4:
             with chat_container_4:
                 with st.chat_message("user"): st.write(user_input_4)
-                st.session_state.messages_4.append({"role": "user", "content": user_input_4})
+                st.session_state[chat_key].append({"role": "user", "content": user_input_4})
                 with st.chat_message("assistant"):
                     response_4 = model.generate_content(f"{sys_prompt_4}\n\n사용자 질문: {user_input_4}")
                     st.write(response_4.text)
-                st.session_state.messages_4.append({"role": "assistant", "content": response_4.text})
+                st.session_state[chat_key].append({"role": "assistant", "content": response_4.text})
