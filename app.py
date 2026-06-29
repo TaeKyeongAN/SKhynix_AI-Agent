@@ -532,12 +532,12 @@ with tab3:
                 st.session_state.messages_3.append({"role": "assistant", "content": response_3.text})
 
 # ==========================================
-# 탭 4: 소비 패턴 분석 및 팩폭 컨설팅 (미집계 제외 및 원 단위 가독성 개선)
+# 탭 4: 소비 패턴 분석 및 팩폭 컨설팅 (만원 단위 및 파이차트 심플화)
 # ==========================================
 with tab4:
     col_vis4, col_chat4 = st.columns([6, 4])
     
-    # 1. 1월~12월 세션 데이터 초기화 (7~12월은 고정지출 포함 완전 0원 세팅)
+    # 1. 1월~12월 세션 데이터 초기화
     categories = ["고정지출", "식비", "교통비", "쇼핑/생활", "문화/여가", "건강/미용"]
     if "monthly_expenses" not in st.session_state:
         st.session_state.monthly_expenses = {
@@ -558,19 +558,15 @@ with tab4:
     with col_vis4:
         st.subheader("💸 소비 패턴 분석 및 팩폭 컨설팅")
         
-        # 월 선택 UI
         months_list = [f"{i}월" for i in range(1, 13)]
-        selected_month = st.selectbox("분석할 월을 선택하세요", options=months_list, index=5) # 기본값 6월
+        selected_month = st.selectbox("분석할 월을 선택하세요", options=months_list, index=5)
         
-        # Expander로 편집창 관리
         with st.expander(f"✍️ {selected_month} 지출 내역 편집 (항목 변경 시 실시간 반영)", expanded=False):
             df_current = pd.DataFrame({
                 "카테고리": categories,
                 "금액": st.session_state.monthly_expenses[selected_month]
             })
             edited_df = st.data_editor(df_current, use_container_width=True, key=f"editor_{selected_month}")
-            
-            # 편집된 내용을 세션 스테이트에 동적 저장
             st.session_state.monthly_expenses[selected_month] = edited_df["금액"].tolist()
             
         st.write("")
@@ -579,8 +575,9 @@ with tab4:
         monthly_totals = [sum(st.session_state.monthly_expenses[m]) for m in months_list]
         df_trend = pd.DataFrame({"월": months_list, "지출액": monthly_totals})
         
-        # 🔥 [핵심 수정 1] 지출액이 0원인 달(미집계 달)은 추이 그래프 데이터에서 완전히 제외
-        df_trend_filtered = df_trend[df_trend["지출액"] > 0]
+        # 합계가 0인 달은 그래프에서 제외하고, '만 원' 단위 컬럼 추가
+        df_trend_filtered = df_trend[df_trend["지출액"] > 0].copy()
+        df_trend_filtered["지출액(만)"] = df_trend_filtered["지출액"] / 10000
         
         c1, c2 = st.columns(2)
         with c1:
@@ -588,15 +585,14 @@ with tab4:
             
             if not df_trend_filtered.empty:
                 colors = ["#e74c3c" if m == selected_month else "#3498db" for m in df_trend_filtered["월"]]
-                fig_trend = px.bar(df_trend_filtered, x="월", y="지출액", color="월", color_discrete_sequence=colors)
+                # y축을 지출액(만)으로 설정
+                fig_trend = px.bar(df_trend_filtered, x="월", y="지출액(만)", color="월", color_discrete_sequence=colors)
                 
-                # 🔥 [핵심 수정 2] M 단위를 제거하고 '원' 단위 콤마 포맷으로 강제 지정
-                fig_trend.update_traces(texttemplate='%{y:,}원', textposition='outside')
+                # 텍스트 포맷을 깔끔하게 'OO만'으로 설정
+                fig_trend.update_traces(texttemplate='%{y:,.0f}만', textposition='outside')
                 fig_trend.update_layout(
-                    height=280, 
-                    margin=dict(t=25, b=10, l=0, r=0), 
-                    showlegend=False, 
-                    yaxis=dict(tickformat=",", title="지출액 (원)")
+                    height=280, margin=dict(t=25, b=10, l=0, r=0), 
+                    showlegend=False, yaxis=dict(title="지출액 (만 원)")
                 )
                 st.plotly_chart(fig_trend, use_container_width=True)
             else:
@@ -604,15 +600,18 @@ with tab4:
             
         with c2:
             st.markdown(f"<p style='font-size:14px; font-weight:bold; margin-bottom:0;'>🥧 {selected_month} 카테고리 분포</p>", unsafe_allow_html=True)
-            df_pie = edited_df[edited_df["금액"] > 0]
-            if not df_pie.empty:
+            
+            current_total = edited_df["금액"].sum()
+            if current_total > 0:
+                df_pie = edited_df[edited_df["금액"] > 0]
                 fig_pie = px.pie(df_pie, values="금액", names="카테고리", hole=0.3, color_discrete_sequence=px.colors.qualitative.Pastel)
-                # 파이 차트 내부 툴팁 레이블도 원 단위 콤마가 나오도록 설정
-                fig_pie.update_traces(texttemplate='%{label}<br>%{value:,}원 (%{percent})')
+                
+                # 🔥 파이 차트를 본래의 깔끔한 퍼센티지+레이블 형태로 복구
+                fig_pie.update_traces(textposition='inside', textinfo='percent+label')
                 fig_pie.update_layout(height=280, margin=dict(t=25, b=10, l=0, r=0))
                 st.plotly_chart(fig_pie, use_container_width=True)
             else:
-                st.info(f"{selected_month} 데이터가 없습니다.")
+                st.warning(f"🚫 {selected_month} 지출 내역이 아직 집계되지 않았습니다.")
                 
         st.markdown("---")
         
@@ -622,22 +621,27 @@ with tab4:
             prev_month = months_list[curr_idx - 1]
             st.markdown(f"##### 📈 전월 대비 항목별 증감 분석 ({prev_month} vs {selected_month})")
             
-            comp_data = []
-            for i, cat in enumerate(categories):
-                curr_val = st.session_state.monthly_expenses[selected_month][i]
-                prev_val = st.session_state.monthly_expenses[prev_month][i]
-                diff = curr_val - prev_val
-                comp_data.append({"카테고리": cat, "증감": diff})
+            if sum(st.session_state.monthly_expenses[selected_month]) == 0 and sum(st.session_state.monthly_expenses[prev_month]) == 0:
+                st.info("비교할 지출 데이터가 없습니다.")
+            else:
+                comp_data = []
+                for i, cat in enumerate(categories):
+                    curr_val = st.session_state.monthly_expenses[selected_month][i]
+                    prev_val = st.session_state.monthly_expenses[prev_month][i]
+                    diff = curr_val - prev_val
+                    comp_data.append({"카테고리": cat, "증감": diff})
+                    
+                df_comp = pd.DataFrame(comp_data)
+                # '만 원' 단위 변환
+                df_comp["증감(만)"] = df_comp["증감"] / 10000
+                df_comp["금액_텍스트"] = df_comp["증감(만)"].apply(lambda x: f"+{x:,.1f}만" if x > 0 else f"{x:,.1f}만" if x < 0 else "변동 없음")
                 
-            df_comp = pd.DataFrame(comp_data)
-            df_comp["금액_텍스트"] = df_comp["증감"].apply(lambda x: f"+{x:,}원" if x > 0 else f"{x:,}원" if x < 0 else "변동 없음")
-            
-            fig_diff = px.bar(df_comp, x="카테고리", y="증감", text="금액_텍스트",
-                              color=df_comp["증감"] > 0,
-                              color_discrete_map={True: "#e74c3c", False: "#2ecc71"})
-            fig_diff.update_traces(textposition='auto')
-            fig_diff.update_layout(height=280, margin=dict(t=10, b=10, l=0, r=0), showlegend=False, yaxis=dict(tickformat=",", title="증감액 (원)"))
-            st.plotly_chart(fig_diff, use_container_width=True)
+                fig_diff = px.bar(df_comp, x="카테고리", y="증감(만)", text="금액_텍스트",
+                                  color=df_comp["증감"] > 0,
+                                  color_discrete_map={True: "#e74c3c", False: "#2ecc71"})
+                fig_diff.update_traces(textposition='auto')
+                fig_diff.update_layout(height=280, margin=dict(t=10, b=10, l=0, r=0), showlegend=False, yaxis=dict(title="증감액 (만 원)"))
+                st.plotly_chart(fig_diff, use_container_width=True)
         else:
             st.markdown("##### 📈 전월 대비 항목별 증감 분석")
             st.info("1월은 이전 데이터가 없어 증감 비교를 제공하지 않습니다.")
@@ -646,15 +650,15 @@ with tab4:
     with col_chat4:
         st.subheader("💬 지출 팩폭 상담가")
         
-        # 고정지출은 제외하고 변동 지출 중 최고 지출 추적
         df_variable = edited_df[edited_df["카테고리"] != "고정지출"]
         if not df_variable.empty and df_variable["금액"].sum() > 0:
             max_expense = df_variable.loc[df_variable["금액"].idxmax()]["카테고리"]
+            greeting_4 = f"{selected_month}에는 변동 지출 중 '{max_expense}' 항목이 가장 높으시네요. 팩트 폭격과 함께 절약 미션을 받아보시겠어요?"
         else:
             max_expense = "지출 없음"
+            greeting_4 = f"{selected_month} 지출 내역이 없습니다. 새로운 달의 예산 계획을 세워볼까요?"
             
-        sys_prompt_4 = f"너는 지출 내역을 보고 팩트 폭격을 날려주는 깐깐한 상담가야. 사용자가 {selected_month}에 '{max_expense}' 카테고리에 가장 많은 돈을 썼어. 정신 차리게 해주고 내일 당장 실천할 구체적인 절약 미션을 던져줘."
-        greeting_4 = f"{selected_month}에는 변동 지출 중 '{max_expense}' 항목이 가장 높으시네요. 팩트 폭격과 함께 절약 미션을 받아보시겠어요?"
+        sys_prompt_4 = f"너는 지출 내역을 보고 팩트 폭격을 날려주는 깐깐한 상담가야. 사용자가 {selected_month}에 '{max_expense}' 카테고리에 가장 많은 돈을 썼어. (만약 '지출 없음'이라면 예산 계획을 세워줘) 정신 차리게 해주고 내일 당장 실천할 구체적인 절약 미션을 던져줘."
         
         chat_key = f"messages_4_{selected_month}"
         if chat_key not in st.session_state:
