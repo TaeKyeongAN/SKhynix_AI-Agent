@@ -272,6 +272,10 @@ with tab2:
             "성취도": [achievement_today], "일일_평균": [avg_cond_today]
         })
         df_history = pd.concat([df_mock, df_today], ignore_index=True)
+        
+        # [✨여기가 핵심 해결책✨] 섞인 데이터 타입을 datetime으로 강제 통일
+        df_history["날짜"] = pd.to_datetime(df_history["날짜"]) 
+        
         df_history["요일"] = df_history["날짜"].dt.strftime("%a")
         
         # 차트 영역을 탭으로 분리하여 깔끔하게 배치
