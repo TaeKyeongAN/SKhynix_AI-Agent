@@ -532,12 +532,12 @@ with tab3:
                 st.session_state.messages_3.append({"role": "assistant", "content": response_3.text})
 
 # ==========================================
-# 탭 4: 소비 패턴 분석 및 팩폭 컨설팅 (월별 동적 데이터 & 리얼리티 반영)
+# 탭 4: 소비 패턴 분석 및 팩폭 컨설팅 (미집계 제외 및 원 단위 가독성 개선)
 # ==========================================
 with tab4:
     col_vis4, col_chat4 = st.columns([6, 4])
     
-    # 1. 1월~12월 세션 데이터 초기화 (고정지출 17.4만 고정, 백원 단위 디테일)
+    # 1. 1월~12월 세션 데이터 초기화 (7~12월은 고정지출 포함 완전 0원 세팅)
     categories = ["고정지출", "식비", "교통비", "쇼핑/생활", "문화/여가", "건강/미용"]
     if "monthly_expenses" not in st.session_state:
         st.session_state.monthly_expenses = {
@@ -547,12 +547,12 @@ with tab4:
             "4월": [174000, 520100, 98000, 150400, 95000, 40000],
             "5월": [174000, 680500, 130200, 380500, 175000, 95500],
             "6월": [174000, 920500, 145800, 620500, 280000, 110500],
-            "7월": [174000, 0, 0, 0, 0, 0],
-            "8월": [174000, 0, 0, 0, 0, 0],
-            "9월": [174000, 0, 0, 0, 0, 0],
-            "10월": [174000, 0, 0, 0, 0, 0],
-            "11월": [174000, 0, 0, 0, 0, 0],
-            "12월": [174000, 0, 0, 0, 0, 0]
+            "7월": [0, 0, 0, 0, 0, 0],
+            "8월": [0, 0, 0, 0, 0, 0],
+            "9월": [0, 0, 0, 0, 0, 0],
+            "10월": [0, 0, 0, 0, 0, 0],
+            "11월": [0, 0, 0, 0, 0, 0],
+            "12월": [0, 0, 0, 0, 0, 0]
         }
         
     with col_vis4:
@@ -562,7 +562,7 @@ with tab4:
         months_list = [f"{i}월" for i in range(1, 13)]
         selected_month = st.selectbox("분석할 월을 선택하세요", options=months_list, index=5) # 기본값 6월
         
-        # Expander로 편집창 숨김 처리
+        # Expander로 편집창 관리
         with st.expander(f"✍️ {selected_month} 지출 내역 편집 (항목 변경 시 실시간 반영)", expanded=False):
             df_current = pd.DataFrame({
                 "카테고리": categories,
@@ -570,38 +570,53 @@ with tab4:
             })
             edited_df = st.data_editor(df_current, use_container_width=True, key=f"editor_{selected_month}")
             
-            # 편집된 내용을 세션 스테이트에 저장 (동적 연동)
+            # 편집된 내용을 세션 스테이트에 동적 저장
             st.session_state.monthly_expenses[selected_month] = edited_df["금액"].tolist()
             
         st.write("")
         
-        # 전체 월 합계 계산 (추이 그래프용)
+        # 전체 월 합계 계산
         monthly_totals = [sum(st.session_state.monthly_expenses[m]) for m in months_list]
         df_trend = pd.DataFrame({"월": months_list, "지출액": monthly_totals})
+        
+        # 🔥 [핵심 수정 1] 지출액이 0원인 달(미집계 달)은 추이 그래프 데이터에서 완전히 제외
+        df_trend_filtered = df_trend[df_trend["지출액"] > 0]
         
         c1, c2 = st.columns(2)
         with c1:
             st.markdown(f"<p style='font-size:14px; font-weight:bold; margin-bottom:0;'>📅 연간 총 지출 추이</p>", unsafe_allow_html=True)
-            # 현재 선택된 월만 다른 색상으로 하이라이트
-            colors = ["#e74c3c" if m == selected_month else "#3498db" for m in months_list]
-            fig_trend = px.bar(df_trend, x="월", y="지출액", text_auto='.2s', color="월", color_discrete_sequence=colors)
-            fig_trend.update_layout(height=260, margin=dict(t=10, b=10, l=0, r=0), showlegend=False, yaxis_title="")
-            st.plotly_chart(fig_trend, use_container_width=True)
+            
+            if not df_trend_filtered.empty:
+                colors = ["#e74c3c" if m == selected_month else "#3498db" for m in df_trend_filtered["월"]]
+                fig_trend = px.bar(df_trend_filtered, x="월", y="지출액", color="월", color_discrete_sequence=colors)
+                
+                # 🔥 [핵심 수정 2] M 단위를 제거하고 '원' 단위 콤마 포맷으로 강제 지정
+                fig_trend.update_traces(texttemplate='%{y:,}원', textposition='outside')
+                fig_trend.update_layout(
+                    height=280, 
+                    margin=dict(t=25, b=10, l=0, r=0), 
+                    showlegend=False, 
+                    yaxis=dict(tickformat=",", title="지출액 (원)")
+                )
+                st.plotly_chart(fig_trend, use_container_width=True)
+            else:
+                st.info("데이터가 집계된 달이 없습니다.")
             
         with c2:
             st.markdown(f"<p style='font-size:14px; font-weight:bold; margin-bottom:0;'>🥧 {selected_month} 카테고리 분포</p>", unsafe_allow_html=True)
-            # 0원인 항목은 파이 차트에서 보이지 않도록 필터링
             df_pie = edited_df[edited_df["금액"] > 0]
             if not df_pie.empty:
                 fig_pie = px.pie(df_pie, values="금액", names="카테고리", hole=0.3, color_discrete_sequence=px.colors.qualitative.Pastel)
-                fig_pie.update_layout(height=260, margin=dict(t=10, b=10, l=0, r=0))
+                # 파이 차트 내부 툴팁 레이블도 원 단위 콤마가 나오도록 설정
+                fig_pie.update_traces(texttemplate='%{label}<br>%{value:,}원 (%{percent})')
+                fig_pie.update_layout(height=280, margin=dict(t=25, b=10, l=0, r=0))
                 st.plotly_chart(fig_pie, use_container_width=True)
             else:
-                st.info(f"{selected_month} 지출 내역이 없습니다.")
+                st.info(f"{selected_month} 데이터가 없습니다.")
                 
         st.markdown("---")
         
-        # 전월 대비 증감 분석 (1월 선택 시에는 비교 생략)
+        # 전월 대비 증감 분석
         curr_idx = months_list.index(selected_month)
         if curr_idx > 0:
             prev_month = months_list[curr_idx - 1]
@@ -621,7 +636,7 @@ with tab4:
                               color=df_comp["증감"] > 0,
                               color_discrete_map={True: "#e74c3c", False: "#2ecc71"})
             fig_diff.update_traces(textposition='auto')
-            fig_diff.update_layout(height=280, margin=dict(t=10, b=10, l=0, r=0), showlegend=False, yaxis_title="증감액 (원)")
+            fig_diff.update_layout(height=280, margin=dict(t=10, b=10, l=0, r=0), showlegend=False, yaxis=dict(tickformat=",", title="증감액 (원)"))
             st.plotly_chart(fig_diff, use_container_width=True)
         else:
             st.markdown("##### 📈 전월 대비 항목별 증감 분석")
@@ -631,7 +646,7 @@ with tab4:
     with col_chat4:
         st.subheader("💬 지출 팩폭 상담가")
         
-        # 고정지출은 팩폭 대상에서 제외하고, 변동 지출 중 가장 큰 금액 찾기
+        # 고정지출은 제외하고 변동 지출 중 최고 지출 추적
         df_variable = edited_df[edited_df["카테고리"] != "고정지출"]
         if not df_variable.empty and df_variable["금액"].sum() > 0:
             max_expense = df_variable.loc[df_variable["금액"].idxmax()]["카테고리"]
@@ -641,7 +656,6 @@ with tab4:
         sys_prompt_4 = f"너는 지출 내역을 보고 팩트 폭격을 날려주는 깐깐한 상담가야. 사용자가 {selected_month}에 '{max_expense}' 카테고리에 가장 많은 돈을 썼어. 정신 차리게 해주고 내일 당장 실천할 구체적인 절약 미션을 던져줘."
         greeting_4 = f"{selected_month}에는 변동 지출 중 '{max_expense}' 항목이 가장 높으시네요. 팩트 폭격과 함께 절약 미션을 받아보시겠어요?"
         
-        # 월이 바뀌면 채팅창을 리셋하기 위한 로직 (세션 키에 월 포함)
         chat_key = f"messages_4_{selected_month}"
         if chat_key not in st.session_state:
             st.session_state[chat_key] = [{"role": "assistant", "content": greeting_4}]
