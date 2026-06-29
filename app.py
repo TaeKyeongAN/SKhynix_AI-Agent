@@ -532,21 +532,62 @@ with tab3:
                 st.session_state.messages_3.append({"role": "assistant", "content": response_3.text})
 
 # ==========================================
-# 탭 4: 소비 패턴 분석 및 팩폭 컨설팅
+# 탭 4: 소비 패턴 분석 (1~6월 데이터 시각화 및 전월 대비 증감 분석)
 # ==========================================
 with tab4:
-    col_vis4, col_chat4 = st.columns([6, 4])
+    st.subheader("📊 월간 소비 패턴 분석 리포트")
     
-    with col_vis4:
-        st.subheader("💸 소비 패턴 분석 및 팩폭 컨설팅")
-        df_expenses = pd.DataFrame([
-            {"카테고리": "식비(배달 포함)", "금액": 150000},
-            {"카테고리": "교통비", "금액": 30000},
-            {"카테고리": "쇼핑/자기계발", "금액": 50000},
-            {"카테고리": "기타", "금액": 20000}
-        ])
-        edited_df = st.data_editor(df_expenses, num_rows="dynamic", key="expense_editor")
-        st.bar_chart(edited_df.set_index("카테고리"))
+    # 1. 월별 지출 데이터 생성 (1~6월 집계, 7~12월 미집계)
+    # 1,6월 높음, 2,5월 보통, 3,4월 낮음 반영
+    months = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"]
+    spending_data = [2800000, 2200000, 1800000, 1700000, 2100000, 2900000, 0, 0, 0, 0, 0, 0]
+    df_monthly = pd.DataFrame({"월": months, "지출액": spending_data})
+    
+    # 6월 상세 항목 (지출 성향)
+    categories = ["식비", "주거/통신", "자기계발", "취미/여가", "기타"]
+    # 6월 상세 비중 (합계 290만)
+    june_data = [900000, 700000, 500000, 600000, 200000]
+    # 5월 상세 비중 (합계 210만)
+    may_data = [700000, 700000, 300000, 300000, 100000]
+    
+    col1, col2 = st.columns([1, 1])
+    
+    with col1:
+        st.markdown("##### 📅 월별 총 지출 추이")
+        fig_trend = px.bar(df_monthly, x="월", y="지출액", color_discrete_sequence=["#3498db"])
+        fig_trend.update_layout(height=300)
+        st.plotly_chart(fig_trend, use_container_width=True)
+        
+    with col2:
+        st.markdown("##### 🥧 6월 지출 카테고리 분포")
+        fig_pie = px.pie(values=june_data, names=categories, hole=0.3)
+        fig_pie.update_layout(height=300)
+        st.plotly_chart(fig_pie, use_container_width=True)
+
+    st.markdown("---")
+    
+    # 2. 5월 vs 6월 항목별 비교 분석
+    st.markdown("##### 📈 항목별 전월 대비 증감 분석 (5월 vs 6월)")
+    df_comp = pd.DataFrame({
+        "항목": categories,
+        "5월": may_data,
+        "6월": june_data
+    })
+    df_comp["증감"] = df_comp["6월"] - df_comp["5월"]
+    
+    # 증감 시각화
+    fig_diff = px.bar(df_comp, x="항목", y="증감", color=df_comp["증감"] > 0,
+                      color_discrete_map={True: "#e74c3c", False: "#2ecc71"},
+                      text="증감")
+    fig_diff.update_layout(showlegend=False, height=300)
+    st.plotly_chart(fig_diff, use_container_width=True)
+    
+    # 3. 상세 분석 코멘트
+    st.info("""
+    **💡 AI 소비 분석 결과:**
+    - 6월은 1월과 함께 가장 지출이 많은 달입니다. 특히 **'식비'와 '취미/여가' 항목**에서 전월 대비 큰 폭의 증가세가 확인됩니다.
+    - 7월부터는 6월의 급격한 지출을 고려하여, 자기계발비를 제외한 취미 예산을 10% 축소하는 전략을 권장합니다.
+    """)
 
     with col_chat4:
         st.subheader("💬 지출 팩폭 상담가")
