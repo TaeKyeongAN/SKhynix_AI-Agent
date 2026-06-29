@@ -72,8 +72,13 @@ with st.sidebar:
 # ----------------------------------------------------------------------
 st.title("🚀 SKHynix AI 성장 파트너 대시보드")
 
-# 기능별로 탭 생성
-tab1, tab2, tab3 = st.tabs(["⏱️ 24시간 타임블록 설계", "🧠 감정-성취도 분석", "💰 스마트 재무/소비 관리"])
+# 기능별로 4개의 탭 생성
+tab1, tab2, tab3, tab4 = st.tabs([
+    "⏱️ 24시간 타임블록 설계", 
+    "🧠 감정-성취도 분석", 
+    "📈 첫 월급 시뮬레이터", 
+    "💸 소비 패턴 분석"
+])
 
 # ==========================================
 # 탭 1: 갓생 루틴 메이커 (타임블록)
@@ -205,39 +210,27 @@ with tab2:
                 st.session_state.messages_2.append({"role": "assistant", "content": response_2.text})
 
 # ==========================================
-# 탭 3: 스마트 재무/소비 관리
+# 탭 3: 첫 월급 황금비율 시뮬레이터
 # ==========================================
 with tab3:
     col_vis3, col_chat3 = st.columns([6, 4])
     
     with col_vis3:
         st.subheader("📈 첫 월급 황금비율 시뮬레이터")
-        save_ratio = st.slider("첫 월급 저축 비율 (%)", 0, 100, 50)
+        save_ratio = st.slider("첫 월급 저축 비율 (%)", 0, 100, 50, key="save_ratio")
         
         base_salary = 3000000
         monthly_save = base_salary * (save_ratio / 100)
         years = [1, 3, 5]
-        assets = [monthly_save * 12 * y * 1.05 for y in years]
+        assets = [monthly_save * 12 * y * 1.05 for y in years] # 5% 복리/단리 가정 예시
         
         chart_data = pd.DataFrame({"예상 자산(원)": assets}, index=["1년 뒤", "3년 뒤", "5년 뒤"])
         st.bar_chart(chart_data)
-        
-        st.markdown("---")
-        st.subheader("💸 소비 패턴 분석 및 팩폭 컨설팅")
-        df_expenses = pd.DataFrame([
-            {"카테고리": "식비(배달 포함)", "금액": 150000},
-            {"카테고리": "교통비", "금액": 30000},
-            {"카테고리": "쇼핑/자기계발", "금액": 50000},
-            {"카테고리": "기타", "금액": 20000}
-        ])
-        edited_df = st.data_editor(df_expenses, num_rows="dynamic", key="expense_editor")
-        st.bar_chart(edited_df.set_index("카테고리"))
 
     with col_chat3:
-        st.subheader("💬 재무/소비 맞춤 코칭")
-        max_expense = edited_df.loc[edited_df["금액"].idxmax()]["카테고리"]
-        sys_prompt_3 = f"너는 엄격한 재무 상담가야. 사용자가 이번 주 '{max_expense}'에 가장 많은 돈을 썼고 저축률을 {save_ratio}%로 설정했어. 구체적인 절약 미션을 던져줘."
-        greeting_3 = f"재무 상담가입니다. 현재 저축률을 {save_ratio}%로 설정하셨네요! 이번 주 지출 내역을 바탕으로 뼈 때리는 절약 미션을 받아보시겠어요?"
+        st.subheader("💬 저축/투자 맞춤 코칭")
+        sys_prompt_3 = f"너는 현실적인 재무 설계사야. 사용자가 첫 월급의 {save_ratio}%를 저축하기로 했어. 이 저축률에 대한 평가와, 이를 달성하기 위한 구체적인 방법 및 추천 투자처를 알려줘."
+        greeting_3 = f"재무 설계사입니다. 현재 첫 월급 저축률을 {save_ratio}%로 설정하셨군요! 이 목표에 대한 피드백이나 투자 포트폴리오를 추천해 드릴까요?"
         
         if "messages_3" not in st.session_state:
             st.session_state.messages_3 = [{"role": "assistant", "content": greeting_3}]
@@ -248,7 +241,7 @@ with tab3:
                 with st.chat_message(msg["role"]):
                     st.write(msg["content"])
                     
-        user_input_3 = st.chat_input("재무/지출 관리에 대해 질문하기...", key="chat_in_3")
+        user_input_3 = st.chat_input("저축이나 투자에 대해 질문하기...", key="chat_in_3")
         if user_input_3:
             with chat_container_3:
                 with st.chat_message("user"): st.write(user_input_3)
@@ -257,3 +250,45 @@ with tab3:
                     response_3 = model.generate_content(f"{sys_prompt_3}\n\n사용자 질문: {user_input_3}")
                     st.write(response_3.text)
                 st.session_state.messages_3.append({"role": "assistant", "content": response_3.text})
+
+# ==========================================
+# 탭 4: 소비 패턴 분석 및 팩폭 컨설팅
+# ==========================================
+with tab4:
+    col_vis4, col_chat4 = st.columns([6, 4])
+    
+    with col_vis4:
+        st.subheader("💸 소비 패턴 분석 및 팩폭 컨설팅")
+        df_expenses = pd.DataFrame([
+            {"카테고리": "식비(배달 포함)", "금액": 150000},
+            {"카테고리": "교통비", "금액": 30000},
+            {"카테고리": "쇼핑/자기계발", "금액": 50000},
+            {"카테고리": "기타", "금액": 20000}
+        ])
+        edited_df = st.data_editor(df_expenses, num_rows="dynamic", key="expense_editor")
+        st.bar_chart(edited_df.set_index("카테고리"))
+
+    with col_chat4:
+        st.subheader("💬 지출 팩폭 상담가")
+        max_expense = edited_df.loc[edited_df["금액"].idxmax()]["카테고리"]
+        sys_prompt_4 = f"너는 지출 내역을 보고 팩트 폭격을 날려주는 깐깐한 상담가야. 사용자가 이번 주 '{max_expense}' 카테고리에 가장 많은 돈을 썼어. 정신 차리게 해주고 내일 당장 실천할 구체적인 절약 미션을 던져줘."
+        greeting_4 = f"이번 주 '{max_expense}'에 지출이 가장 많으시네요. 팩트 폭격과 함께 절약 미션을 받아보시겠어요?"
+        
+        if "messages_4" not in st.session_state:
+            st.session_state.messages_4 = [{"role": "assistant", "content": greeting_4}]
+            
+        chat_container_4 = st.container(height=550)
+        with chat_container_4:
+            for msg in st.session_state.messages_4:
+                with st.chat_message(msg["role"]):
+                    st.write(msg["content"])
+                    
+        user_input_4 = st.chat_input("지출 관리에 대해 질문하기...", key="chat_in_4")
+        if user_input_4:
+            with chat_container_4:
+                with st.chat_message("user"): st.write(user_input_4)
+                st.session_state.messages_4.append({"role": "user", "content": user_input_4})
+                with st.chat_message("assistant"):
+                    response_4 = model.generate_content(f"{sys_prompt_4}\n\n사용자 질문: {user_input_4}")
+                    st.write(response_4.text)
+                st.session_state.messages_4.append({"role": "assistant", "content": response_4.text})
