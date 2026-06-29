@@ -5,6 +5,7 @@ import pytz
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
 import time
 
 # ----------------------------------------------------------------------
@@ -56,7 +57,7 @@ d_day_pay = (payday - today).days
 pay_str = f"D-{d_day_pay}" if d_day_pay > 0 else "D-Day (월급날! 💸)"
 
 # ----------------------------------------------------------------------
-# 4. 사이드바 구성 (프로필 및 전역 데이터 - 컨디션 기능 삭제)
+# 4. 사이드바 구성 (프로필 및 전역 데이터 - 컨디션 기능 삭제 완료)
 # ----------------------------------------------------------------------
 with st.sidebar:
     st.header("🏢 SKHynix 성장 파트너")
@@ -181,19 +182,15 @@ with tab1:
             final_comment = "\n\n".join(comments)
             st.success(final_comment)
                 
-    # [우측: 채팅 영역 - 컨디션 문구 삭제 반영]
+    # [우측: 채팅 영역 - 스마트 라이프 코치 페르소나 적용]
     with col_chat1:
         st.subheader("💬 타임블록 맞춤 코칭")
         sys_prompt_1 = f"""
-        너는 직장인을 위한 현실적이고 다정한 루틴 코치야.
-        오늘 계획한 시간 배분: 수면 {sleep_h}시간, 업무 {work_h}시간, 자기계발 {study_h}시간, 일상/휴식 {rest_h:.1f}시간.
-        
-        [주의사항]
-        여기서 '일상/휴식' 시간은 순수하게 노는 시간이 아니라 출퇴근, 식사, 가사 노동, 씻는 시간 등 필수적인 생활 시간이 모두 포함된 값이야.
-        따라서 일상/휴식 시간이 길다고 해서 게으르다고 판단하거나 억지스러운 팩폭을 날려선 절대 안 돼.
-        이 점을 충분히 감안해서, 시간 배분의 밸런스가 좋은지 분석해주고, 현실적으로 실천 가능한 조언이나 따뜻한 격려를 해줘.
+        너는 직장인의 효율적인 시간 관리를 돕는 스마트 라이프 코치야.
+        오늘 계획한 시간 배분(수면 {sleep_h}시간, 업무 {work_h}시간, 자기계발 {study_h}시간, 일상/휴식 {rest_h:.1f}시간)을 바탕으로 하루의 밸런스를 분석해 줘.
+        무조건 열심히 하라는 압박보다는, 일과 휴식의 조화를 통해 '지속 가능한 루틴'을 만들 수 있도록 현실적이고 따뜻한 피드백을 제공하는 것이 핵심이야.
         """
-        greeting_1 = "안녕하세요 안태경 님! 출퇴근과 식사 시간 등을 고려했을 때, 오늘 계획하신 루틴 밸런스가 어떤지 점검해 드릴까요?"
+        greeting_1 = "안녕하세요 안태경 님! 오늘 계획하신 타임블록을 확인했습니다. 일과 휴식의 밸런스가 잘 맞는지, 지속 가능한 루틴을 위한 피드백을 받아보시겠어요?"
         
         if "messages_1" not in st.session_state:
             st.session_state.messages_1 = [{"role": "assistant", "content": greeting_1}]
@@ -324,23 +321,17 @@ with tab2:
             
             st.success(f"{trend_msg}\n\n{time_msg}\n\n{day_msg}")
 
+    # [우측: 채팅 영역 - 마인드케어 파트너 페르소나 적용]
     with col_chat2:
         st.subheader("💬 멘탈/성취도 맞춤 코칭")
         
         sys_prompt_2 = f"""
-        너는 직장인의 멘탈과 성취도를 관리해주는 따뜻하고 예리한 상담가야.
-        오늘 사용자의 데이터:
-        - 아침 컨디션: {cond_morning}/100
-        - 점심 컨디션: {cond_afternoon}/100
-        - 저녁 컨디션: {cond_evening}/100
-        - 하루 평균: {avg_cond_today:.1f}/100
-        - 오늘의 달성률(성취도): {achievement_today}%
-        
-        이 데이터를 바탕으로 오늘 하루 감정의 기복이 어땠는지 캐치해주고(예: 저녁에 급격히 떨어짐 등), 
-        달성률과 엮어서 내일을 위한 멘탈 케어 팁을 2~3문장으로 다정하게 제공해줘.
+        너는 직장인의 멘탈 케어와 성취도를 함께 고민해 주는 다정한 파트너야.
+        오늘의 감정 흐름(아침 {cond_morning}/100, 점심 {cond_afternoon}/100, 저녁 {cond_evening}/100)과 하루 성취도({achievement_today}%) 데이터를 바탕으로 오늘 하루를 객관적이면서도 따뜻하게 리뷰해 줘.
+        무리하지 않고 내일 더 나은 컨디션을 유지할 수 있는 실질적인 마인드 케어 팁을 2~3문장으로 제안해 줘.
         """
         
-        greeting_2 = f"감정의 흐름(아침 {cond_morning} ➡️ 점심 {cond_afternoon} ➡️ 저녁 {cond_evening})을 기록해주셨네요! 달성률 {achievement_today}%와 엮어서 오늘 하루를 리뷰해 드릴까요?"
+        greeting_2 = "오늘 하루의 감정 흐름과 성취도를 모두 기록해 주셨군요! 데이터를 바탕으로 오늘 하루를 객관적으로 리뷰하고, 내일을 위한 마인드 케어 팁을 확인해 볼까요?"
         
         if "messages_2" not in st.session_state:
             st.session_state.messages_2 = [{"role": "assistant", "content": greeting_2}]
@@ -476,20 +467,18 @@ with tab3:
             fig_b.update_layout(height=450, uniformtext_minsize=11, uniformtext_mode='show')
             st.plotly_chart(fig_b, use_container_width=True)
     
+    # [우측: 채팅 영역 - 전문 재무 컨설턴트 페르소나 적용]
     with col_chat3:
         st.subheader("💬 재무 상담가 코멘트")
         sys_prompt_3 = f"""
-        너는 재무 전문가야. 사용자의 월 세후 실수령액은 375만원이야.
-        - 고정 지출 합계: {total_fixed}원
-        - 투자액: {amt_save}원
-        - 남은 생활비: {amt_flex}원
-        - 기대 수익률: {ret_rate}%
-        
-        이 예산을 기반으로, 고정 지출 중 줄일 수 있는 부분은 없는지, 
-        남은 생활비로 한 달을 버티기에 적절한지 냉정하게 평가하고 팩트 폭격형 조언을 해줘.
+        너는 사회초년생의 자산 형성을 돕는 전문 재무 컨설턴트야.
+        세후 실수령액 375만 원을 기준으로, 현재 설정된 고정 지출({total_fixed}원), 투자액({amt_save}원), 남은 생활비({amt_flex}원)의 비율을 분석해 줘.
+        무리한 절약을 강요하거나 비난하지 말고, 현재의 예산 분배가 장기적으로 안정적인지 객관적으로 진단한 뒤 실용적인 자산 관리 전략을 제안해 줘.
         """
+        greeting_3 = "첫 월급의 설렘을 넘어, 본격적인 자산 관리를 시작할 때입니다. 현재 설정하신 예산 분배와 고정 지출 내역을 바탕으로 안정적인 재무 포트폴리오를 점검해 드릴까요?"
+        
         if "messages_3" not in st.session_state:
-            st.session_state.messages_3 = [{"role": "assistant", "content": "세후 375만 원의 첫 월급, 고정 지출까지 꼼꼼히 반영해서 재무 설계를 시작해 볼까요?"}]
+            st.session_state.messages_3 = [{"role": "assistant", "content": greeting_3}]
             
         chat_container_3 = st.container(height=550)
         with chat_container_3:
@@ -508,8 +497,6 @@ with tab3:
 # ==========================================
 # 탭 4: 소비 패턴 분석 
 # ==========================================
-import plotly.graph_objects as go
-
 with tab4:
     col_vis4, col_chat4 = st.columns([6, 4])
     
@@ -531,7 +518,7 @@ with tab4:
         }
         
     with col_vis4:
-        st.subheader("💸 소비 패턴 분석 및 팩폭 컨설팅")
+        st.subheader("💸 소비 패턴 분석 및 컨설팅")
         
         months_list = [f"{i}월" for i in range(1, 13)]
         selected_month = st.selectbox("분석할 월을 선택하세요", options=months_list, index=5)
@@ -611,9 +598,9 @@ with tab4:
                     if increase_dict:
                         max_inc_cat = max(increase_dict, key=increase_dict.get)
                         max_inc_val = increase_dict[max_inc_cat]
-                        st.error(f"🚨 **경고:** 전체 지출이 전월 대비 **{total_diff_man:,.1f}만 원** 늘었습니다. 주원인은 **'{max_inc_cat}'**(+{max_inc_val:,.1f}만 원) 입니다.")
+                        st.error(f"🚨 **알림:** 전체 지출이 전월 대비 **{total_diff_man:,.1f}만 원** 늘었습니다. 주원인은 **'{max_inc_cat}'**(+{max_inc_val:,.1f}만 원) 입니다.")
                     else:
-                        st.error(f"🚨 **경고:** 전체 지출이 전월 대비 **{total_diff_man:,.1f}만 원** 늘었습니다.")
+                        st.error(f"🚨 **알림:** 전체 지출이 전월 대비 **{total_diff_man:,.1f}만 원** 늘었습니다.")
                         
                 elif total_diff_man < 0:
                     decrease_dict = {k: v for k, v in diff_dict.items() if v < 0}
@@ -655,18 +642,23 @@ with tab4:
             st.markdown("##### 📈 지출 증감 원인 분석")
             st.info("1월은 이전 데이터가 없어 증감 비교를 제공하지 않습니다.")
 
+    # [우측: 채팅 영역 - 스마트 소비 분석가 페르소나 적용]
     with col_chat4:
-        st.subheader("💬 지출 팩폭 상담가")
+        st.subheader("💬 지출 분석 상담가")
         
         df_variable = edited_df[edited_df["카테고리"] != "고정지출"]
         if not df_variable.empty and df_variable["금액"].sum() > 0:
             max_expense = df_variable.loc[df_variable["금액"].idxmax()]["카테고리"]
-            greeting_4 = f"{selected_month}에는 변동 지출 중 '{max_expense}' 항목이 가장 높으시네요. 팩트 폭격과 함께 절약 미션을 받아보시겠어요?"
+            greeting_4 = f"{selected_month} 소비 내역을 분석한 결과, '{max_expense}' 항목의 비중이 가장 높게 나타났습니다. 이번 달 지출 흐름을 진단하고 다음 달을 위한 스마트한 소비 전략을 세워볼까요?"
         else:
             max_expense = "지출 없음"
-            greeting_4 = f"{selected_month} 지출 내역이 없습니다. 새로운 달의 예산 계획을 세워볼까요?"
+            greeting_4 = f"{selected_month} 지출 내역이 아직 집계되지 않았습니다. 새로운 달을 맞이하여 미리 예산 분배 계획을 세워볼까요?"
             
-        sys_prompt_4 = f"너는 지출 내역을 보고 팩트 폭격을 날려주는 깐깐한 상담가야. 사용자가 {selected_month}에 '{max_expense}' 카테고리에 가장 많은 돈을 썼어. (만약 '지출 없음'이라면 예산 계획을 세워줘) 정신 차리게 해주고 내일 당장 실천할 구체적인 절약 미션을 던져줘."
+        sys_prompt_4 = f"""
+        너는 데이터 기반으로 소비 습관을 교정해 주는 스마트 소비 분석가야.
+        {selected_month}에 가장 지출이 컸던 '{max_expense}' 카테고리를 중심으로 지출 패턴을 분석해 줘. (만약 '지출 없음'이라면 예산 계획을 세워줘)
+        비난조의 팩트 폭격은 배제하고, 왜 해당 지출이 늘었는지 객관적으로 진단하게 만든 뒤 다음 달 예산 방어를 위한 현명하고 실용적인 전략을 제안해 줘.
+        """
         
         chat_key = f"messages_4_{selected_month}"
         if chat_key not in st.session_state:
