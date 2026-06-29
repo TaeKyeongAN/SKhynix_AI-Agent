@@ -378,7 +378,7 @@ with tab2:
                 st.session_state.messages_2.append({"role": "assistant", "content": response_2.text})
 
 # ==========================================
-# 탭 3: 월급 시뮬레이터 (슬라이더 선, 숫자 색상까지 완전 연동 및 차트 에러 수정)
+# 탭 3: 월급 시뮬레이터 (슬라이더 기본 복구 및 이모지 하단 배치 완료)
 # ==========================================
 with tab3:
     col_vis3, col_chat3 = st.columns([6, 4])
@@ -388,7 +388,7 @@ with tab3:
         st.markdown("### 📈 월급 시뮬레이터 <span style='font-size:16px; color:gray; font-weight:normal; margin-left:15px;'>예상 월 세후 실수령액: <b>3,750,000원</b> (원 단위 예산 설정)</span>", unsafe_allow_html=True)
         net_salary = 3750000 
         
-        # 1. 고정 지출 리스트를 expander로 숨겨서 세로 공간 확보
+        # 1. 고정 지출 리스트 (expander로 숨겨서 세로 공간 확보)
         with st.expander("🏠 고정 지출 상세 내역 (정기 결제 항목 보기/편집)", expanded=False):
             fixed_expenses_data = pd.DataFrame([
                 {"항목": "휴대폰 기기 + 통신", "금액": 105000},
@@ -406,38 +406,18 @@ with tab3:
         st.write("")
         c1, c2 = st.columns(2)
         with c1:
+            # 조절 단위를 10만 원(100,000)으로 설정
             amt_save = st.number_input("💰 저축/투자 금액 (원)", min_value=0, max_value=net_salary, value=1500000, step=100000, key="num_save_3")
         with c2:
-            ret_rate = st.slider("😈 수익률 시뮬레이션 (-20% 지옥 ~ +20% 천국) 😇", -20.0, 20.0, 4.0, 0.5, key="slide_rate_3")
+            # 슬라이더 스타일은 기본 상태로 복구하고 제목은 깔끔하게 수정
+            ret_rate = st.slider("📊 수익률 시뮬레이션 (%)", -20.0, 20.0, 4.0, 0.5, key="slide_rate_3")
             
-            # 🎨 플러스=레드, 마이너스=블루, 0.0=그레이 색상 지정
-            if ret_rate > 0: slider_color = "#e74c3c" # 빨간색
-            elif ret_rate < 0: slider_color = "#3498db" # 파란색
-            else: slider_color = "#95a5a6" # 회색 (0.0%)
-            
-            # [🔥 핵심 해결책] 슬라이더의 동그라미, 채워진 선, 상단 숫자 색상까지 일괄 변경하는 하이퍼 CSS
-            st.markdown(f"""
-            <style>
-                /* 1. 슬라이더 동그라미(Thumb) 색상 */
-                div.stSlider > div[data-baseweb="slider"] div[role="slider"] {{
-                    background-color: {slider_color} !important;
-                    box-shadow: 0px 0px 5px {slider_color} !important;
-                }}
-                /* 2. 채워지는 앞쪽 막대선(Track) 색상 */
-                div.stSlider > div[data-baseweb="slider"] > div > div > div:nth-child(1) {{
-                    background: {slider_color} !important;
-                }}
-                /* 3. 슬라이더 활성화 상태의 틱 바 색상 */
-                div.stSlider > div[data-baseweb="slider"] div[data-testid="stTickBar"] > div {{
-                    background-color: {slider_color} !important;
-                }}
-                /* 4. 슬라이더 상단에 표시되는 실시간 숫자(Value) 색상 */
-                div.stSlider [data-testid="stWidgetLabel"] + div div {{
-                    color: {slider_color} !important;
-                    font-weight: bold;
-                }}
-            </style>
-            """, unsafe_allow_html=True)
+            # ✨ [핵심 수정] 슬라이더 막대 바로 아래 양 끝에 숫자와 이모티콘 배치
+            slider_label_cols = st.columns([1, 1])
+            with slider_label_cols[0]:
+                st.markdown("<div style='text-align: left; font-size: 13px;'>😈 -20%</div>", unsafe_allow_html=True)
+            with slider_label_cols[1]:
+                st.markdown("<div style='text-align: right; font-size: 13px;'>+20% 😇</div>", unsafe_allow_html=True)
             
         # 남은 잔액 계산
         amt_flex = net_salary - total_fixed - amt_save
@@ -490,6 +470,7 @@ with tab3:
         df_melt["금액_텍스트"] = df_melt["금액"].apply(format_kr_won)
         df_melt["금액(만원)"] = df_melt["금액"] / 10000
         
+        # 차트 막대 색상은 기존 다이내믹 로직 유지 (플러스=레드, 마이너스=블루, 0.0=그레이)
         profit_color_chart = "#e74c3c" if ret_rate > 0 else ("#3498db" if ret_rate < 0 else "#95a5a6")
         color_map = {"원금": "#7f8c8d", "손익": profit_color_chart}
 
@@ -499,7 +480,6 @@ with tab3:
                        text="금액_텍스트",
                        color_discrete_map=color_map)
                        
-        # inside 텍스트 정렬을 'middle'로 수정하여 ValueError 에러 해결 완료!
         fig_g.update_traces(textposition='inside', insidetextanchor='middle')
         fig_g.update_layout(height=380, margin=dict(t=40, b=0, l=0, r=0), yaxis_title="금액 (단위: 만 원)")
         st.plotly_chart(fig_g, use_container_width=True)
@@ -533,6 +513,7 @@ with tab3:
                     response_3 = model.generate_content(f"{sys_prompt_3}\n\n질문: {user_input_3}")
                     st.write(response_3.text)
                 st.session_state.messages_3.append({"role": "assistant", "content": response_3.text})
+
 # ==========================================
 # 탭 4: 소비 패턴 분석 및 팩폭 컨설팅
 # ==========================================
