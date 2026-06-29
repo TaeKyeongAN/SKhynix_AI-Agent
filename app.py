@@ -485,8 +485,17 @@ with tab3:
                        text="금액_텍스트",
                        color_discrete_map=color_map)
                        
-        fig_g.update_traces(textposition='inside', insidetextanchor='middle')
-        fig_g.update_layout(height=380, margin=dict(t=40, b=0, l=0, r=0), yaxis_title="금액 (단위: 만 원)")
+        # 1. 텍스트 위치를 'auto'로 두어 좁으면 막대 밖으로 빼도록 허용
+        fig_g.update_traces(textposition='auto')
+        
+        # 2. 텍스트 최소 크기를 고정(11px)하고 무조건 표시(show)하도록 강제 설정
+        fig_g.update_layout(
+            height=380, 
+            margin=dict(t=40, b=0, l=0, r=0), 
+            yaxis_title="금액 (단위: 만 원)",
+            uniformtext_minsize=11,   # 글씨 크기가 이 이하로 작아지지 않음
+            uniformtext_mode='show'   # 좁아도 글씨를 숨기지 않고 강제 표시
+        )
         st.plotly_chart(fig_g, use_container_width=True)
 
     # 오른쪽 AI 채팅창 영역
