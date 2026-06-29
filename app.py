@@ -378,15 +378,16 @@ with tab2:
                 st.session_state.messages_2.append({"role": "assistant", "content": response_2.text})
 
 # ==========================================
-# 탭 3: 월급 시뮬레이터 (전체 기능 복구 및 탭 분리 적용)
+# 탭 3: 월급 시뮬레이터 (전체 기능 통합 및 에러 수정 완료)
 # ==========================================
 with tab3:
     col_vis3, col_chat3 = st.columns([6, 4])
     
     with col_vis3:
         st.markdown("### 📈 월급 시뮬레이터")
-        # 실수령액 기준 명시
         st.info("ℹ️ 하단 시뮬레이션은 초봉 월 실수령액 **3,750,000원**을 기준으로 계산됩니다.")
+        
+        net_salary = 3750000 
         
         with st.expander("🏠 고정 지출 상세 내역 (정기 결제 항목 보기/편집)", expanded=False):
             fixed_expenses_data = pd.DataFrame([
@@ -400,30 +401,25 @@ with tab3:
         
         c1, c2 = st.columns(2)
         with c1:
-            amt_save = st.number_input("💰 저축/투자 금액 (원)", min_value=0, max_value=3750000, value=1500000, step=100000, key="num_save_3")
+            amt_save = st.number_input("💰 저축/투자 금액 (원)", min_value=0, max_value=net_salary, value=1500000, step=100000, key="num_save_3")
         with c2:
             rate_options = [round(x * 0.5, 1) for x in range(-40, 41)]
-            def format_rate(val):
-                if val == -20.0: return f"😈 {val}%"
-                elif val == 20.0: return f"😇 +{val}%"
-                elif val > 0: return f"+{val}%"
-                else: return f"{val}%"
-            ret_rate = st.select_slider("📊 수익률 시뮬레이션", options=rate_options, value=4.0, format_func=format_rate, key="slide_rate_3")
+            ret_rate = st.select_slider("📊 수익률 시뮬레이션", options=rate_options, value=4.0, key="slide_rate_3")
         
-        amt_flex = 3750000 - total_fixed - amt_save
+        amt_flex = net_salary - total_fixed - amt_save
         
-        # 메트릭 복구
         m1, m2, m3 = st.columns(3)
         m1.metric("월 투자액", f"{amt_save:,} 원")
         m2.metric("고정 지출 합계", f"{total_fixed:,} 원")
         m3.metric("남은 생활비", f"{amt_flex:,} 원")
         
         if amt_flex < 0:
-            st.error("⚠️ 설정한 예산이 월급을 초과했습니다! 고정 지출이나 투자 금액을 조정하세요.")
+            st.error("⚠️ 설정한 예산이 월급을 초과했습니다!")
         
         # 탭 분리
         tab_basic, tab_bonus = st.tabs(["📊 5개년 자산 로드맵", "🚀 성과급 포함 시뮬레이션 (체험판)"])
         
+        # 공통 함수
         def format_kr_won(val):
             sign = "-" if val < 0 else ""
             val = abs(val)
@@ -433,9 +429,11 @@ with tab3:
                 return f"{sign}{uk}억{man}만" if man > 0 else f"{sign}{uk}억"
             return f"{sign}{int(val // 10000)}만"
 
+        # 1. 기본 로드맵
         with tab_basic:
+            years = np.arange(1, 6) # [해결] 여기서 years를 명확히 정의
             results = []
-            for y in range(1, 6):
+            for y in years:
                 months = y * 12
                 fv = 0
                 for m in range(months): fv = (fv + amt_save) * (1 + (ret_rate/100)/12)
@@ -448,40 +446,33 @@ with tab3:
                            title=f"📈 연 기대 수익률 {ret_rate}% 반영 5개년 자산 로드맵",
                            barmode="relative", text="금액_텍스트",
                            color_discrete_map={"원금": "#7f8c8d", "손익": ("#e74c3c" if ret_rate > 0 else "#3498db")})
-            fig_g.update_traces(textposition='auto')
+            fig_g.update_traces(textposition='auto', insidetextanchor='middle')
             fig_g.update_layout(height=450, uniformtext_minsize=11, uniformtext_mode='show')
             st.plotly_chart(fig_g, use_container_width=True)
 
-        # 2. 성과급 포함 체험판 탭 (현실적 로직 적용)
+        # 2. 성과급 포함 체험판
         with tab_bonus:
+            years = np.arange(1, 6) # [해결] 여기도 정의
             results_b = []
+            # 하이닉스 기준: 기본급(연봉/20) + PI(200%) + PS(1000% 가정)
+            annual_base = net_salary * 12
+            total_bonus_per_year = (annual_base / 20) * 12 # PI(2) + PS(10) = 1200%
+            
             for y in years:
-                # [수정] 기본급(연봉/20) + PI(200%) + PS(1000% 가정)
-                base_pay = (net_salary * 12) / 20 
-                pi_bonus = base_pay * 2.0   # 200%
-                ps_bonus = base_pay * 10.0  # 1000% (현실적 PS 반영)
-                total_bonus_per_year = pi_bonus + ps_bonus
-                
                 months = y * 12
                 fv = 0
                 for m in range(months): fv = (fv + amt_save) * (1 + (ret_rate/100)/12)
-                fv += total_bonus_per_year * y # 성과급 누적
-                
-                results_b.append({
-                    "년차": f"{y}년차", 
-                    "원금": amt_save * months, 
-                    "성과급": total_bonus_per_year * y, 
-                    "손익": fv - (amt_save * months + total_bonus_per_year * y)
-                })
+                fv += total_bonus_per_year * y
+                results_b.append({"년차": f"{y}년차", "원금": amt_save * months, "성과급": total_bonus_per_year * y, "손익": fv - (amt_save * months + total_bonus_per_year * y)})
             
             df_b = pd.DataFrame(results_b).melt(id_vars="년차", value_vars=["원금", "성과급", "손익"], var_name="구분", value_name="금액")
             df_b["금액_텍스트"] = df_b["금액"].apply(format_kr_won)
             
             fig_b = px.bar(df_b, x="년차", y=df_b["금액"]/10000, color="구분",
-                           title=f"🚀 연봉+성과급(PI+PS 1200% 반영) 5개년 로드맵",
+                           title=f"🚀 연봉+성과급 반영 5개년 자산 로드맵",
                            barmode="relative", text="금액_텍스트",
                            color_discrete_map={"원금": "#7f8c8d", "성과급": "#ffcc99", "손익": ("#e74c3c" if ret_rate > 0 else "#3498db")})
-            fig_b.update_traces(textposition='auto')
+            fig_b.update_traces(textposition='auto', insidetextanchor='middle')
             fig_b.update_layout(height=450, uniformtext_minsize=11, uniformtext_mode='show')
             st.plotly_chart(fig_b, use_container_width=True)
     
