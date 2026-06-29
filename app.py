@@ -125,7 +125,7 @@ with tab1:
             
             # 1. 원래 슬라이더가 있던 자리에 현재 날짜 및 요일 정보 노출
             weekday_kr = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"][today.weekday()]
-            st.info(f"📅 **현재 날짜:** {today.strftime('%Y년 %m월 %d일')} ({weekday_kr})")
+            st.info(f"**현재 날짜:** {today.strftime('%Y년 %m월 %d일')} ({weekday_kr})")
             
             # 2. 시간 설정 슬라이더 칸을 한 칸 아래로 이동
             c1, c2, c3 = st.columns(3)
