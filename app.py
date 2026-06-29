@@ -452,27 +452,39 @@ with tab3:
             fig_g.update_layout(height=450, uniformtext_minsize=11, uniformtext_mode='show')
             st.plotly_chart(fig_g, use_container_width=True)
 
+        # 2. 성과급 포함 체험판 탭 (현실적 로직 적용)
         with tab_bonus:
             results_b = []
-            for y in range(1, 6):
-                bonus = (3750000 / 20) * 8 # 800% 성과급 예시
+            for y in years:
+                # [수정] 기본급(연봉/20) + PI(200%) + PS(1000% 가정)
+                base_pay = (net_salary * 12) / 20 
+                pi_bonus = base_pay * 2.0   # 200%
+                ps_bonus = base_pay * 10.0  # 1000% (현실적 PS 반영)
+                total_bonus_per_year = pi_bonus + ps_bonus
+                
                 months = y * 12
                 fv = 0
                 for m in range(months): fv = (fv + amt_save) * (1 + (ret_rate/100)/12)
-                fv += bonus * y 
-                results_b.append({"년차": f"{y}년차", "원금": amt_save * months, "성과급": bonus * y, "손익": fv - (amt_save * months + bonus * y)})
+                fv += total_bonus_per_year * y # 성과급 누적
+                
+                results_b.append({
+                    "년차": f"{y}년차", 
+                    "원금": amt_save * months, 
+                    "성과급": total_bonus_per_year * y, 
+                    "손익": fv - (amt_save * months + total_bonus_per_year * y)
+                })
             
             df_b = pd.DataFrame(results_b).melt(id_vars="년차", value_vars=["원금", "성과급", "손익"], var_name="구분", value_name="금액")
             df_b["금액_텍스트"] = df_b["금액"].apply(format_kr_won)
             
             fig_b = px.bar(df_b, x="년차", y=df_b["금액"]/10000, color="구분",
-                           title=f"🚀 연봉+성과급 반영 5개년 로드맵",
+                           title=f"🚀 연봉+성과급(PI+PS 1200% 반영) 5개년 로드맵",
                            barmode="relative", text="금액_텍스트",
                            color_discrete_map={"원금": "#7f8c8d", "성과급": "#ffcc99", "손익": ("#e74c3c" if ret_rate > 0 else "#3498db")})
             fig_b.update_traces(textposition='auto')
             fig_b.update_layout(height=450, uniformtext_minsize=11, uniformtext_mode='show')
             st.plotly_chart(fig_b, use_container_width=True)
-
+    
     # 오른쪽 AI 채팅창 영역
     with col_chat3:
         st.subheader("💬 재무 상담가 코멘트")
