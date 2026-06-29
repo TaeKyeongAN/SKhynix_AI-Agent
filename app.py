@@ -482,7 +482,7 @@ with tab3:
                        text="금액_텍스트",
                        color_discrete_map=color_map)
                        
-        fig_g.update_traces(textposition='inside', insidetextanchor='center')
+        fig_g.update_traces(textposition='inside', insidetextanchor='middle')
         fig_g.update_layout(height=380, margin=dict(t=40, b=0, l=0, r=0), yaxis_title="금액 (단위: 만 원)")
         st.plotly_chart(fig_g, use_container_width=True)
 
