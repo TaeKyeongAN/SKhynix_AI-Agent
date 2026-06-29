@@ -450,26 +450,35 @@ with tab3:
             fig_g.update_layout(height=450, uniformtext_minsize=11, uniformtext_mode='show')
             st.plotly_chart(fig_g, use_container_width=True)
 
-        # 2. 성과급 포함 체험판
+        # 2. 성과급 포함 체험판 탭 (세후 실수령액 기준 현실화)
         with tab_bonus:
-            years = np.arange(1, 6) # [해결] 여기도 정의
             results_b = []
             # 하이닉스 기준: 기본급(연봉/20) + PI(200%) + PS(1000% 가정)
             annual_base = net_salary * 12
-            total_bonus_per_year = (annual_base / 20) * 12 # PI(2) + PS(10) = 1200%
+            total_bonus_before_tax = (annual_base / 20) * 12 # PI(2) + PS(10) = 1200%
+            
+            # [세후 계산 로직] 누진세율 약 35%~40% 구간 감안하여 약 60%만 세후로 산정
+            tax_rate = 0.38 
+            total_bonus_after_tax = total_bonus_before_tax * (1 - tax_rate)
             
             for y in years:
                 months = y * 12
                 fv = 0
                 for m in range(months): fv = (fv + amt_save) * (1 + (ret_rate/100)/12)
-                fv += total_bonus_per_year * y
-                results_b.append({"년차": f"{y}년차", "원금": amt_save * months, "성과급": total_bonus_per_year * y, "손익": fv - (amt_save * months + total_bonus_per_year * y)})
+                fv += total_bonus_after_tax * y # 세후 성과급 누적
+                
+                results_b.append({
+                    "년차": f"{y}년차", 
+                    "원금": amt_save * months, 
+                    "성과급": total_bonus_after_tax * y, 
+                    "손익": fv - (amt_save * months + total_bonus_after_tax * y)
+                })
             
             df_b = pd.DataFrame(results_b).melt(id_vars="년차", value_vars=["원금", "성과급", "손익"], var_name="구분", value_name="금액")
             df_b["금액_텍스트"] = df_b["금액"].apply(format_kr_won)
             
             fig_b = px.bar(df_b, x="년차", y=df_b["금액"]/10000, color="구분",
-                           title=f"🚀 연봉+성과급 반영 5개년 자산 로드맵",
+                           title=f"🚀 연봉+성과급(세후 반영) 5개년 자산 로드맵",
                            barmode="relative", text="금액_텍스트",
                            color_discrete_map={"원금": "#7f8c8d", "성과급": "#ffcc99", "손익": ("#e74c3c" if ret_rate > 0 else "#3498db")})
             fig_b.update_traces(textposition='auto', insidetextanchor='middle')
