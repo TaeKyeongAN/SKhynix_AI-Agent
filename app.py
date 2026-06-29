@@ -221,7 +221,7 @@ with tab1:
                 st.session_state.messages_1.append({"role": "assistant", "content": response_1.text})
 
 # ==========================================
-# 탭 2: 감정-성취도 상관관계 분석 (가독성 색상 & 5% 단위 수정)
+# 탭 2: 감정-성취도 상관관계 분석 (로직 기반 자동 분석 코멘트 추가)
 # ==========================================
 with tab2:
     col_vis2, col_chat2 = st.columns([6, 4])
@@ -247,7 +247,6 @@ with tab2:
         
         st.write("")
         achieve_help_text = "💡 기준: 오늘 계획했던 핵심 루틴과 업무를 얼마나 달성했나요?"
-        # 성취도 슬라이더 5% 단위로 변경 (step=5)
         achievement_today = st.slider("🎯 오늘의 성취도 (%)", 0, 100, 70, 5, help=achieve_help_text, key="achieve")
         
         avg_cond_today = (cond_morning + cond_afternoon + cond_evening) / 3
@@ -304,6 +303,42 @@ with tab2:
                              title="요일별 평균 비교", color="variable", color_discrete_map=chart_colors)
             fig_day.update_layout(height=320, margin=dict(t=40, b=0, l=0, r=0))
             st.plotly_chart(fig_day, use_container_width=True)
+            
+        # [NEW: 로직 기반 3종 데이터 인사이트 분석 영역]
+        st.markdown("---")
+        st.markdown("#### 💡 데이터 인사이트")
+        
+        if st.button("✨ 최근 2주 패턴 분석하기", key="analyze_tab2"):
+            # 1. 종합 추이 분석 로직
+            avg_cond_14d = df_history["일일_평균"].mean()
+            avg_ach_14d = df_history["성취도"].mean()
+            
+            diff_cond = avg_cond_today - avg_cond_14d
+            diff_ach = achievement_today - avg_ach_14d
+            
+            trend_msg = "**1. 종합 추이:** 최근 2주 평균 대비 오늘의 컨디션은 "
+            if diff_cond >= 10: trend_msg += "좋은 편이고, "
+            elif diff_cond <= -10: trend_msg += "아쉬운 편이고, "
+            else: trend_msg += "비슷한 수준이며, "
+            
+            if diff_ach >= 10: trend_msg += "성취도는 훌륭합니다! 🌟"
+            elif diff_ach <= -10: trend_msg += "성취도는 다소 낮습니다. 무리하지 마세요. ☕"
+            else: trend_msg += "성취도도 안정적으로 유지 중입니다. 👍"
+            
+            # 2. 시간대별 분석 로직
+            best_time = max(time_avg, key=time_avg.get)
+            worst_time = min(time_avg, key=time_avg.get)
+            time_msg = f"**2. 시간대별 패턴:** 주로 **'{best_time}'**에 에너지가 가장 높고, **'{worst_time}'**에 떨어지는 경향이 있습니다. 에너지가 필요한 중요한 업무는 가급적 {best_time}에 배치해 보세요! ⏰"
+            
+            # 3. 요일별 분석 로직
+            best_day = df_day.loc[df_day["성취도"].idxmax()]["요일"]
+            # 영어 요일을 한글로 변환
+            day_kr_map = {"Mon": "월", "Tue": "화", "Wed": "수", "Thu": "목", "Fri": "금", "Sat": "토", "Sun": "일"}
+            best_day_kr = day_kr_map.get(best_day, best_day)
+            day_msg = f"**3. 요일별 분석:** 데이터를 보면 **{best_day_kr}요일**의 성취도가 가장 높게 나타납니다. {best_day_kr}요일의 좋은 루틴을 다른 날에도 적용해 보는 건 어떨까요? 📅"
+            
+            # 종합 코멘트 출력
+            st.success(f"{trend_msg}\n\n{time_msg}\n\n{day_msg}")
 
     with col_chat2:
         st.subheader("💬 멘탈/성취도 맞춤 코칭")
