@@ -81,14 +81,15 @@ tab1, tab2, tab3, tab4 = st.tabs([
 ])
 
 # ==========================================
-# 탭 1: 갓생 루틴 메이커 (타임블록) - 수정본
+# 탭 1: 갓생 루틴 메이커 (타임블록) - 리얼리티 & 프롬프트 개선
 # ==========================================
 with tab1:
     col_vis1, col_chat1 = st.columns([6, 4])
     
     with col_vis1:
         st.subheader("📊 24시간 타임블록 설계")
-        color_map = {'수면': '#3498db', '업무': '#e74c3c', '자기계발': '#f1c40f', '휴식': '#2ecc71'}
+        # '휴식' -> '일상/휴식'으로 네이밍 변경
+        color_map = {'수면': '#3498db', '업무': '#e74c3c', '자기계발': '#f1c40f', '일상/휴식': '#2ecc71'}
         col_left, col_right = st.columns(2)
         
         # [왼쪽: 통계 분석]
@@ -98,23 +99,33 @@ with tab1:
             if period == "요일별":
                 options_display = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
                 val = st.selectbox("항목 선택", options_display, key="stat_val")
-                display_title = f"{val} 데이터"
+                display_title = f"{val} 평균 데이터"
                 day_key = val[0] 
-                base_data = {
-                    "월": [7, 10, 2, 5], "화": [7, 9, 2, 6], "수": [7, 9, 2, 6], 
-                    "목": [7, 9, 2, 6], "금": [7, 8, 2, 7], "토": [8, 2, 6, 8], "일": [9, 1, 6, 8]
+                # 소수점 단위의 리얼한 요일별 데이터 (합계 24시간)
+                base_data_day = {
+                    "월": [6.8, 9.5, 1.2, 6.5], "화": [7.1, 9.2, 1.5, 6.2], 
+                    "수": [6.9, 9.4, 1.8, 5.9], "목": [7.2, 8.8, 2.1, 5.9], 
+                    "금": [6.5, 8.5, 1.0, 8.0], "토": [8.2, 2.5, 3.5, 9.8], 
+                    "일": [8.5, 1.5, 3.0, 11.0]
                 }
-                data_values = base_data.get(day_key, [7, 8, 2, 7])
+                data_values = base_data_day.get(day_key, [7.0, 9.0, 2.0, 6.0])
             else:
                 options_display = [f"{i}월" for i in range(1, 13)]
                 val = st.selectbox("항목 선택", options_display, key="stat_val2")
-                display_title = f"{val} 데이터"
-                month_num = int(val.replace("월", ""))
-                if month_num in [6, 7, 8]: data_values = [7, 7, 3, 7]
-                elif month_num == 12: data_values = [6, 11, 4, 3]
-                else: data_values = [7, 9, 2, 6]
+                display_title = f"{val} 평균 데이터"
+                month_num = val.replace("월", "")
+                # 소수점 단위의 리얼한 월별 데이터 (합계 24시간)
+                base_data_month = {
+                    "1": [7.3, 8.6, 2.4, 5.7], "2": [7.1, 8.9, 2.1, 5.9], 
+                    "3": [6.9, 9.3, 1.8, 6.0], "4": [7.0, 9.1, 1.9, 6.0],
+                    "5": [6.8, 8.8, 2.0, 6.4], "6": [6.9, 8.5, 2.1, 6.5],
+                    "7": [7.2, 8.0, 1.8, 7.0], "8": [7.4, 7.8, 1.5, 7.3],
+                    "9": [7.0, 8.7, 2.2, 6.1], "10": [7.1, 8.9, 2.5, 5.5],
+                    "11": [6.8, 9.5, 2.3, 5.4], "12": [6.5, 8.5, 1.5, 7.5]
+                }
+                data_values = base_data_month.get(month_num, [7.0, 9.0, 2.0, 6.0])
             
-            df_stat = pd.DataFrame({'활동': ['수면', '업무', '자기계발', '휴식'], '시간': data_values})
+            df_stat = pd.DataFrame({'활동': ['수면', '업무', '자기계발', '일상/휴식'], '시간': data_values})
             fig_stat = px.pie(df_stat, values='시간', names='활동', title=f"{display_title}", color='활동', color_discrete_map=color_map)
             fig_stat.update_layout(height=350, margin=dict(t=50, b=0, l=0, r=0))
             st.plotly_chart(fig_stat, use_container_width=True)
@@ -123,32 +134,39 @@ with tab1:
         with col_right:
             st.markdown("#### 📅 오늘의 계획")
             
-            # 1. 원래 슬라이더가 있던 자리에 현재 날짜 및 요일 정보 노출
             weekday_kr = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"][today.weekday()]
-            st.info(f"**현재 날짜:** {today.strftime('%Y년 %m월 %d일')} ({weekday_kr})")
+            st.info(f"📅 **현재 날짜:** {today.strftime('%Y년 %m월 %d일')} ({weekday_kr})")
             
-            # 2. 시간 설정 슬라이더 칸을 한 칸 아래로 이동
             c1, c2, c3 = st.columns(3)
             with c1: sleep_h = st.slider("수면", 0.0, 24.0, 7.0, 0.5, key="sl1")
             with c2: work_h = st.slider("업무", 0.0, 24.0, 9.0, 0.5, key="wk1")
             with c3: study_h = st.slider("자기계발", 0.0, 24.0, 2.0, 0.5, key="st1")
             rest_h = 24.0 - (sleep_h + work_h + study_h)
             
-            # 3. 우측에 위젯이 늘어나면서 세로 균형이 맞춰졌으므로 여백 미세 조정
             st.write("") 
                         
             if rest_h < 0:
                 st.error("시간 합계 초과!")
             else:
-                df_today = pd.DataFrame({'활동': ['수면', '업무', '자기계발', '휴식'], '시간': [sleep_h, work_h, study_h, rest_h]})
+                df_today = pd.DataFrame({'활동': ['수면', '업무', '자기계발', '일상/휴식'], '시간': [sleep_h, work_h, study_h, rest_h]})
                 fig_today = px.pie(df_today, values='시간', names='활동', title="현재 타임블록", color='활동', color_discrete_map=color_map)
                 fig_today.update_layout(height=350, margin=dict(t=50, b=0, l=0, r=0))
                 st.plotly_chart(fig_today, use_container_width=True)
                 
     with col_chat1:
         st.subheader("💬 타임블록 맞춤 코칭")
-        sys_prompt_1 = f"너는 엄격하고 다정한 루틴 코치야. 현재 상황: 컨디션 '{condition}', 오늘 시간 배분: 수면 {sleep_h}시간, 업무 {work_h}시간, 공부 {study_h}시간, 휴식 {rest_h}시간. 이 데이터를 바탕으로 팩트 폭격을 해주고 조언을 제안해."
-        greeting_1 = f"안녕하세요 안태경 님! 오늘 '{condition}' 상태시군요. 좌측의 시간 배분 데이터를 분석해 드릴까요?"
+        # 프롬프트 디테일 강화 (일상/휴식 시간에 대한 AI 인지 조정)
+        sys_prompt_1 = f"""
+        너는 직장인을 위한 현실적이고 다정한 루틴 코치야.
+        현재 사용자의 컨디션은 '{condition}' 상태야.
+        오늘 계획한 시간 배분: 수면 {sleep_h}시간, 업무 {work_h}시간, 자기계발 {study_h}시간, 일상/휴식 {rest_h:.1f}시간.
+        
+        [주의사항]
+        여기서 '일상/휴식' 시간은 순수하게 노는 시간이 아니라 출퇴근, 식사, 가사 노동, 씻는 시간 등 필수적인 생활 시간이 모두 포함된 값이야.
+        따라서 일상/휴식 시간이 길다고 해서 게으르다고 판단하거나 억지스러운 팩폭을 날려선 절대 안 돼.
+        이 점을 충분히 감안해서, 현재 컨디션과 시간 배분의 밸런스가 좋은지 분석해주고, 현실적으로 실천 가능한 조언이나 따뜻한 격려를 해줘.
+        """
+        greeting_1 = f"안녕하세요 안태경 님! 오늘 '{condition}' 상태시군요. 출퇴근과 식사 시간 등을 고려했을 때, 오늘의 루틴 밸런스가 어떤지 점검해 드릴까요?"
         
         if "messages_1" not in st.session_state:
             st.session_state.messages_1 = [{"role": "assistant", "content": greeting_1}]
