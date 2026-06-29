@@ -60,7 +60,7 @@ pay_str = f"D-{d_day_pay}" if d_day_pay > 0 else "D-Day (월급날! 💸)"
 # 4. 사이드바 구성 (프로필 및 전역 데이터 - 컨디션 기능 삭제 완료)
 # ----------------------------------------------------------------------
 with st.sidebar:
-    st.header("🏢 SKHynix 성장 파트너")
+    st.header("🚀 Hy-Fi Agent")
     st.markdown("---")
     st.markdown("### 👤 Profile\n**Name:** 안태경\n\n**Team:** 양산기술")
     st.markdown("---")
