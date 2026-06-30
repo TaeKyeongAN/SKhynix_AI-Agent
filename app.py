@@ -30,13 +30,51 @@ try:
 except:
     st.error("API 키가 설정되지 않았습니다. Streamlit Secrets를 확인해주세요.")
 
+# ----------------------------------------------------------------------
+# Word Report 설정
+# ----------------------------------------------------------------------
 def create_word_report(title, content):
     doc = Document()
     doc.add_heading(title, 0)
-    doc.add_paragraph(content)
-    bio = io.BytesIO()
-    doc.save(bio)
-    return bio.getvalue()
+    
+    # 1. 마크다운 기호들을 정규표현식으로 깔끔하게 제거
+    # ###(제목), ---(구분선), <br>(줄바꿈), **(강조), `(코드) 등 제거
+    clean_content = content
+    clean_content = re.sub(r'###\s*', '', clean_content) # ### 제목 제거
+    clean_content = re.sub(r'---', '', clean_content)    # --- 구분선 제거
+    clean_content = re.sub(r'<br>', '\n', clean_content) # <br>을 줄바꿈으로
+    clean_content = re.sub(r'\*\*(.*?)\*\*', r'\1', clean_content) # **강조** 제거
+    clean_content = re.sub(r'`(.*?)`', r'\1', clean_content)       # `코드` 제거
+    
+    # 2. 내용을 줄 단위로 처리
+    lines = clean_content.split('\n')
+    table_data = []
+    
+    for line in lines:
+        line = line.strip()
+        if not line: continue # 빈 줄 건너뜀
+        
+        # 표 형식 감지
+        if line.startswith('|') and line.endswith('|'):
+            row = [cell.strip() for cell in line.split('|') if cell.strip()]
+            if row and not any('---' in cell for cell in row): # 헤더 구분선 제외
+                table_data.append(row)
+        else:
+            # 표 생성 (이전 데이터가 쌓여있다면)
+            if table_data:
+                table = doc.add_table(rows=len(table_data), cols=len(table_data[0]))
+                table.style = 'Table Grid'
+                for i, row_data in enumerate(table_data):
+                    for j, cell_text in enumerate(row_data):
+                        table.cell(i, j).text = cell_text
+                table_data = []
+            
+            # 일반 문단 추가
+            doc.add_paragraph(line)
+                
+    return_bio = io.BytesIO()
+    doc.save(return_bio)
+    return return_bio.getvalue()
 
 # ----------------------------------------------------------------------
 # 3. 날짜 및 D-Day 계산 로직 (KST 기준)
