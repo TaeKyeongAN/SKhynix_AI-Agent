@@ -60,8 +60,8 @@ pay_str = f"D-{d_day_pay}" if d_day_pay > 0 else "D-Day (월급날! 💸)"
 # 4. 사이드바 구성 (Company, 성장 로그 및 Quick Links 추가)
 # ----------------------------------------------------------------------
 with st.sidebar:
-    st.header("🏢 Hy-Life Manager")
-    st.markdown("---")
+    # st.header("🏢 Hy-Life Manager")
+    # st.markdown("---")
     st.markdown("### 👤 Profile\n**Company:** SK하이닉스\n\n**Team:** 양산기술\n\n**Name:** 안태경")
     st.markdown("---")
     st.markdown("### ⏳ D-Day\n")
