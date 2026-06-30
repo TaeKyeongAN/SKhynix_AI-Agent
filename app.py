@@ -7,6 +7,8 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import time
+from docx import Document
+import io
 
 # ----------------------------------------------------------------------
 # 1. 페이지 기본 설정 (Hy-Life Manager 반영)
@@ -30,6 +32,14 @@ except:
 # ----------------------------------------------------------------------
 # 3. 날짜 및 D-Day 계산 로직 (KST 기준)
 # ----------------------------------------------------------------------
+def create_word_report(title, content):
+    doc = Document()
+    doc.add_heading(title, 0)
+    doc.add_paragraph(content)
+    bio = io.BytesIO()
+    doc.save(bio)
+    return bio.getvalue()
+
 kst = pytz.timezone('Asia/Seoul')
 now = datetime.now(kst)
 today = now.date()
@@ -193,7 +203,9 @@ with tab1:
         
         *중요: 만약 사용자가 '보고서', '리포트' 등을 만들어 달라고 요청하면, 내용을 요약해주고 마지막에 반드시 '[리포트생성]'이라는 단어를 포함해줘.*
         """
-        greeting_1 = "안녕하세요 안태경 님! 오늘 계획하신 타임블록을 확인했습니다. 일과 휴식의 밸런스가 잘 맞는지, 지속 가능한 루틴을 위한 피드백을 받아보시겠어요?"
+        greeting_1 = """안녕하세요 안태경 님! 오늘 계획하신 타임블록을 확인했습니다. 일과 휴식의 밸런스가 잘 맞는지, 지속 가능한 루틴을 위한 피드백을 받아보시겠어요?
+        
+        (💡 꿀팁: 분석 내용이 마음에 드신다면 언제든 '보고서 만들어줘'라고 말씀해 주세요. 워드 파일로 정리해 드립니다!)"""
         
         if "messages_1" not in st.session_state:
             st.session_state.messages_1 = [{"role": "assistant", "content": greeting_1}]
@@ -217,12 +229,12 @@ with tab1:
                         clean_text = response_1.text.replace("[리포트생성]", "").strip()
                         st.write(clean_text)
                         
-                        report_content = f"--- [Hy-Life Manager 타임블록 설계 보고서] ---\n\n{clean_text}"
+                        # report_content = f"--- [Hy-Life Manager 타임블록 설계 보고서] ---\n\n{clean_text}"
                         st.download_button(
-                            label="📄 타임블록 보고서 다운로드 (TXT)",
-                            data=report_content,
+                            label="📄 타임블록 보고서 다운로드 (Word)",
+                            data=create_word_report("Hy-Life 타임블록 분석 보고서", clean_text),
                             file_name=f"Timeblock_Report_{today}.txt",
-                            mime="text/plain"
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                         )
                     else:
                         st.write(response_1.text)
