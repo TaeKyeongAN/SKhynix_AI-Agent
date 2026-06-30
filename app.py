@@ -9,10 +9,10 @@ import plotly.graph_objects as go
 import time
 
 # ----------------------------------------------------------------------
-# 1. 페이지 기본 설정 (Hy-Fi Agent 반영)
+# 1. 페이지 기본 설정 (Hy-Life Manager 반영)
 # ----------------------------------------------------------------------
 st.set_page_config(
-    page_title="Hy-Fi Agent | 직장인 라이프 & 재무 최적화", 
+    page_title="Hy-Life Manager | 직장인 라이프 매니저", 
     page_icon="🚀", 
     layout="wide"
 )
@@ -57,21 +57,24 @@ d_day_pay = (payday - today).days
 pay_str = f"D-{d_day_pay}" if d_day_pay > 0 else "D-Day (월급날! 💸)"
 
 # ----------------------------------------------------------------------
-# 4. 사이드바 구성 (프로필 및 전역 데이터 - 컨디션 기능 삭제 완료)
+# 4. 사이드바 구성 (Company, 성장 로그 및 Quick Links 추가)
 # ----------------------------------------------------------------------
 with st.sidebar:
-    st.header("🚀 Hy-Fi Agent")
+    st.header("🏢 Hy-Life Manager")
     st.markdown("---")
-    st.markdown("### 👤 Profile\n**Name:** 안태경\n\n**Team:** 양산기술")
+    st.markdown("### 👤 Profile\n**Company:** SK하이닉스\n\n**Team:** 양산기술\n\n**Name:** 안태경")
     st.markdown("---")
     st.markdown("### ⏳ D-Day\n")
     st.info(f"**입사일:** {join_str}\n\n**월급날:** {pay_str}")
     st.markdown("---")
+    st.markdown("### 🔗 Quick Links")
+    st.markdown("- 🌐 [SK하이닉스 공식 홈페이지](https://www.skhynix.com/)")
+    st.markdown("- 📰 [SK하이닉스 뉴스룸](https://news.skhynix.co.kr/)")
 
 # ----------------------------------------------------------------------
 # 5. 메인 화면 로직 (탭 기반 1기능-1채팅 레이아웃)
 # ----------------------------------------------------------------------
-st.title("🚀 Hy-Fi Agent: 내 손안의 AI 라이프 매니저")
+st.title("🚀 Hy-Life Manager: 내 손안의 AI 라이프 매니저")
 
 # 기능별로 4개의 탭 생성
 tab1, tab2, tab3, tab4 = st.tabs([
