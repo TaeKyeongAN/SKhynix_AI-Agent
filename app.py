@@ -7,6 +7,8 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import time
+from docx import Document  # 워드 파일 생성용
+import io
 
 # ----------------------------------------------------------------------
 # 1. 페이지 기본 설정 (Hy-Life Manager 반영)
@@ -26,6 +28,14 @@ try:
     model = genai.GenerativeModel('gemini-3.5-flash')
 except:
     st.error("API 키가 설정되지 않았습니다. Streamlit Secrets를 확인해주세요.")
+
+def create_word_report(title, content):
+    doc = Document()
+    doc.add_heading(title, 0)
+    doc.add_paragraph(content)
+    bio = io.BytesIO()
+    doc.save(bio)
+    return bio.getvalue()
 
 # ----------------------------------------------------------------------
 # 3. 날짜 및 D-Day 계산 로직 (KST 기준)
@@ -190,8 +200,10 @@ with tab1:
         너는 직장인의 효율적인 시간 관리를 돕는 스마트 라이프 코치야.
         오늘 계획한 시간 배분(수면 {sleep_h}시간, 업무 {work_h}시간, 자기계발 {study_h}시간, 일상/휴식 {rest_h:.1f}시간)을 바탕으로 하루의 밸런스를 분석해 줘.
         무조건 열심히 하라는 압박보다는, 일과 휴식의 조화를 통해 '지속 가능한 루틴'을 만들 수 있도록 현실적이고 따뜻한 피드백을 제공하는 것이 핵심이야.
+        *중요: 만약 사용자가 '보고서', '리포트' 등을 만들어 달라고 요청하면, 내용을 요약해주고 마지막에 반드시 '[리포트생성]'이라는 단어를 포함해줘.*
         """
-        greeting_1 = "안녕하세요 안태경 님! 오늘 계획하신 타임블록을 확인했습니다. 일과 휴식의 밸런스가 잘 맞는지, 지속 가능한 루틴을 위한 피드백을 받아보시겠어요?"
+        greeting_1 = """안녕하세요 안태경 님! 오늘 계획하신 타임블록을 확인했습니다. 일과 휴식의 밸런스가 잘 맞는지, 지속 가능한 루틴을 위한 피드백을 받아보시겠어요?
+        (💡 꿀팁: 분석 내용이 마음에 드신다면 언제든 '보고서 만들어줘'라고 말씀해 주세요. 워드 파일로 정리해 드립니다.)"""
         
         if "messages_1" not in st.session_state:
             st.session_state.messages_1 = [{"role": "assistant", "content": greeting_1}]
@@ -209,8 +221,28 @@ with tab1:
                 st.session_state.messages_1.append({"role": "user", "content": user_input_1})
                 with st.chat_message("assistant"):
                     response_1 = model.generate_content(f"{sys_prompt_1}\n\n사용자 질문: {user_input_1}")
-                    st.write(response_1.text)
-                st.session_state.messages_1.append({"role": "assistant", "content": response_1.text})
+
+                    # ------------------------------------------------------------------
+                    # [수정된 부분: 보고서 생성 키워드 감지 로직 적용]
+                    # ------------------------------------------------------------------
+                    if "[리포트생성]" in response_1.text:
+                        # 1. 키워드를 제외한 순수 텍스트만 보여주기
+                        clean_text = response_1.text.replace("[리포트생성]", "").strip()
+                        st.write(clean_text)
+
+                        # 2. 워드 다운로드 버튼 생성
+                        st.download_button(
+                            label="📄 분석 보고서 다운로드 (Word)",
+                            data=create_word_report("Hy-Life Manager 분석 보고서", clean_text),
+                            file_name=f"Report_{today}.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        )
+                    else:
+                        # 일반 답변인 경우
+                        st.write(response_1.text)
+
+                    # 세션 스테이트 업데이트 (키워드 제거된 버전으로 저장)
+                    st.session_state.messages_1.append({"role": "assistant", "content": response_1.text.replace("[리포트생성]", "")})
 
 # ==========================================
 # 탭 2: 컨디션-성취도 상관관계 분석 
@@ -330,9 +362,11 @@ with tab2:
         너는 직장인의 멘탈 케어와 성취도를 함께 고민해 주는 다정한 파트너야.
         오늘의 감정 흐름(아침 {cond_morning}/100, 점심 {cond_afternoon}/100, 저녁 {cond_evening}/100)과 하루 성취도({achievement_today}%) 데이터를 바탕으로 오늘 하루를 객관적이면서도 따뜻하게 리뷰해 줘.
         무리하지 않고 내일 더 나은 컨디션을 유지할 수 있는 실질적인 마인드 케어 팁을 2~3문장으로 제안해 줘.
+        *중요: 만약 사용자가 '보고서', '리포트' 등을 만들어 달라고 요청하면, 내용을 요약해주고 마지막에 반드시 '[리포트생성]'이라는 단어를 포함해줘.*
         """
         
-        greeting_2 = "오늘 하루의 감정 흐름과 성취도를 모두 기록해 주셨군요! 데이터를 바탕으로 오늘 하루를 객관적으로 리뷰하고, 내일을 위한 마인드 케어 팁을 확인해 볼까요?"
+        greeting_2 = """오늘 하루의 감정 흐름과 성취도를 모두 기록해 주셨군요! 데이터를 바탕으로 오늘 하루를 객관적으로 리뷰하고, 내일을 위한 마인드 케어 팁을 확인해 볼까요?
+        (💡 꿀팁: 분석 내용이 마음에 드신다면 언제든 '보고서 만들어줘'라고 말씀해 주세요. 워드 파일로 정리해 드립니다.)"""
         
         if "messages_2" not in st.session_state:
             st.session_state.messages_2 = [{"role": "assistant", "content": greeting_2}]
@@ -350,8 +384,28 @@ with tab2:
                 st.session_state.messages_2.append({"role": "user", "content": user_input_2})
                 with st.chat_message("assistant"):
                     response_2 = model.generate_content(f"{sys_prompt_2}\n\n사용자 질문: {user_input_2}")
-                    st.write(response_2.text)
-                st.session_state.messages_2.append({"role": "assistant", "content": response_2.text})
+
+                    # ------------------------------------------------------------------
+                    # [수정된 부분: 보고서 생성 키워드 감지 로직 적용]
+                    # ------------------------------------------------------------------
+                    if "[리포트생성]" in response_2.text:
+                        # 1. 키워드를 제외한 순수 텍스트만 보여주기
+                        clean_text = response_2.text.replace("[리포트생성]", "").strip()
+                        st.write(clean_text)
+
+                        # 2. 워드 다운로드 버튼 생성
+                        st.download_button(
+                            label="📄 분석 보고서 다운로드 (Word)",
+                            data=create_word_report("Hy-Life Manager 분석 보고서", clean_text),
+                            file_name=f"Report_{today}.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        )
+                    else:
+                        # 일반 답변인 경우
+                        st.write(response_2.text)
+
+                    # 세션 스테이트 업데이트 (키워드 제거된 버전으로 저장)
+                    st.session_state.messages_2.append({"role": "assistant", "content": response_2.text.replace("[리포트생성]", "")})
 
 # ==========================================
 # 탭 3: 월급 시뮬레이터 
@@ -475,8 +529,10 @@ with tab3:
         너는 사회초년생의 자산 형성을 돕는 전문 재무 컨설턴트야.
         세후 실수령액 375만 원을 기준으로, 현재 설정된 고정 지출({total_fixed}원), 투자액({amt_save}원), 남은 생활비({amt_flex}원)의 비율을 분석해 줘.
         무리한 절약을 강요하거나 비난하지 말고, 현재의 예산 분배가 장기적으로 안정적인지 객관적으로 진단한 뒤 실용적인 자산 관리 전략을 제안해 줘.
+        *중요: 만약 사용자가 '보고서', '리포트' 등을 만들어 달라고 요청하면, 내용을 요약해주고 마지막에 반드시 '[리포트생성]'이라는 단어를 포함해줘.*
         """
-        greeting_3 = "첫 월급의 설렘을 넘어, 본격적인 자산 관리를 시작할 때입니다. 현재 설정하신 예산 분배와 고정 지출 내역을 바탕으로 안정적인 재무 포트폴리오를 점검해 드릴까요?"
+        greeting_3 = """첫 월급의 설렘을 넘어, 본격적인 자산 관리를 시작할 때입니다. 현재 설정하신 예산 분배와 고정 지출 내역을 바탕으로 안정적인 재무 포트폴리오를 점검해 드릴까요?
+        (💡 꿀팁: 분석 내용이 마음에 드신다면 언제든 '보고서 만들어줘'라고 말씀해 주세요. 워드 파일로 정리해 드립니다.)"""
         
         if "messages_3" not in st.session_state:
             st.session_state.messages_3 = [{"role": "assistant", "content": greeting_3}]
@@ -491,9 +547,29 @@ with tab3:
                 with st.chat_message("user"): st.write(user_input_3)
                 st.session_state.messages_3.append({"role": "user", "content": user_input_3})
                 with st.chat_message("assistant"):
-                    response_3 = model.generate_content(f"{sys_prompt_3}\n\n질문: {user_input_3}")
-                    st.write(response_3.text)
-                st.session_state.messages_3.append({"role": "assistant", "content": response_3.text})
+                    response_3 = model.generate_content(f"{sys_prompt_3}\n\n사용자 질문: {user_input_3}")
+
+                    # ------------------------------------------------------------------
+                    # [수정된 부분: 보고서 생성 키워드 감지 로직 적용]
+                    # ------------------------------------------------------------------
+                    if "[리포트생성]" in response_3.text:
+                        # 1. 키워드를 제외한 순수 텍스트만 보여주기
+                        clean_text = response_3.text.replace("[리포트생성]", "").strip()
+                        st.write(clean_text)
+
+                        # 2. 워드 다운로드 버튼 생성
+                        st.download_button(
+                            label="📄 분석 보고서 다운로드 (Word)",
+                            data=create_word_report("Hy-Life Manager 분석 보고서", clean_text),
+                            file_name=f"Report_{today}.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        )
+                    else:
+                        # 일반 답변인 경우
+                        st.write(response_3.text)
+
+                    # 세션 스테이트 업데이트 (키워드 제거된 버전으로 저장)
+                    st.session_state.messages_3.append({"role": "assistant", "content": response_3.text.replace("[리포트생성]", "")})
 
 # ==========================================
 # 탭 4: 소비 패턴 분석 
@@ -650,15 +726,18 @@ with tab4:
         df_variable = edited_df[edited_df["카테고리"] != "고정지출"]
         if not df_variable.empty and df_variable["금액"].sum() > 0:
             max_expense = df_variable.loc[df_variable["금액"].idxmax()]["카테고리"]
-            greeting_4 = f"{selected_month} 소비 내역을 분석한 결과, '{max_expense}' 항목의 비중이 가장 높게 나타났습니다. 이번 달 지출 흐름을 진단하고 다음 달을 위한 스마트한 소비 전략을 세워볼까요?"
+            greeting_4 = f"""{selected_month} 소비 내역을 분석한 결과, '{max_expense}' 항목의 비중이 가장 높게 나타났습니다. 이번 달 지출 흐름을 진단하고 다음 달을 위한 스마트한 소비 전략을 세워볼까요?
+            (💡 꿀팁: 분석 내용이 마음에 드신다면 언제든 '보고서 만들어줘'라고 말씀해 주세요. 워드 파일로 정리해 드립니다.)"""
         else:
             max_expense = "지출 없음"
-            greeting_4 = f"{selected_month} 지출 내역이 아직 집계되지 않았습니다. 새로운 달을 맞이하여 미리 예산 분배 계획을 세워볼까요?"
+            greeting_4 = f"""{selected_month} 지출 내역이 아직 집계되지 않았습니다. 새로운 달을 맞이하여 미리 예산 분배 계획을 세워볼까요?
+            (💡 꿀팁: 분석 내용이 마음에 드신다면 언제든 '보고서 만들어줘'라고 말씀해 주세요. 워드 파일로 정리해 드립니다.)"""
             
         sys_prompt_4 = f"""
         너는 데이터 기반으로 소비 습관을 교정해 주는 스마트 소비 분석가야.
         {selected_month}에 가장 지출이 컸던 '{max_expense}' 카테고리를 중심으로 지출 패턴을 분석해 줘. (만약 '지출 없음'이라면 예산 계획을 세워줘)
         비난조의 팩트 폭격은 배제하고, 왜 해당 지출이 늘었는지 객관적으로 진단하게 만든 뒤 다음 달 예산 방어를 위한 현명하고 실용적인 전략을 제안해 줘.
+        *중요: 만약 사용자가 '보고서', '리포트' 등을 만들어 달라고 요청하면, 내용을 요약해주고 마지막에 반드시 '[리포트생성]'이라는 단어를 포함해줘.*
         """
         
         chat_key = f"messages_4_{selected_month}"
@@ -678,5 +757,25 @@ with tab4:
                 st.session_state[chat_key].append({"role": "user", "content": user_input_4})
                 with st.chat_message("assistant"):
                     response_4 = model.generate_content(f"{sys_prompt_4}\n\n사용자 질문: {user_input_4}")
-                    st.write(response_4.text)
-                st.session_state[chat_key].append({"role": "assistant", "content": response_4.text})
+
+                    # ------------------------------------------------------------------
+                    # [수정된 부분: 보고서 생성 키워드 감지 로직 적용]
+                    # ------------------------------------------------------------------
+                    if "[리포트생성]" in response_4.text:
+                        # 1. 키워드를 제외한 순수 텍스트만 보여주기
+                        clean_text = response_4.text.replace("[리포트생성]", "").strip()
+                        st.write(clean_text)
+
+                        # 2. 워드 다운로드 버튼 생성
+                        st.download_button(
+                            label="📄 분석 보고서 다운로드 (Word)",
+                            data=create_word_report("Hy-Life Manager 분석 보고서", clean_text),
+                            file_name=f"Report_{today}.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        )
+                    else:
+                        # 일반 답변인 경우
+                        st.write(response_4.text)
+
+                    # 세션 스테이트 업데이트 (키워드 제거된 버전으로 저장)
+                    st.session_state.messages_4.append({"role": "assistant", "content": response_4.text.replace("[리포트생성]", "")})
