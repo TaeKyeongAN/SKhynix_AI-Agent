@@ -62,7 +62,7 @@ pay_str = f"D-{d_day_pay}" if d_day_pay > 0 else "D-Day (월급날! 💸)"
 with st.sidebar:
     # st.header("🏢 Hy-Life Manager")
     # st.markdown("---")
-    st.markdown("### 👤 Profile\n**Company:** SK하이닉스\n\n**Team:** 양산기술\n\n**Name:** 안태경")
+    st.markdown("### 👤 Profile\n**Name:** 안태경\n\n**Company:** SK하이닉스\n\n**Team:** 양산기술")
     st.markdown("---")
     st.markdown("### ⏳ D-Day\n")
     st.info(f"**입사일:** {join_str}\n\n**월급날:** {pay_str}")
