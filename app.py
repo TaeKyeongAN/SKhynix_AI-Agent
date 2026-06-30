@@ -9,8 +9,7 @@ import plotly.graph_objects as go
 import time
 from docx import Document  # 워드 파일 생성용
 import io
-import re # 마크다운 기호 제거용
-from docx.shared import Pt # 글자 크기/표 스타일 조절용
+import re
 
 # ----------------------------------------------------------------------
 # 1. 페이지 기본 설정 (Hy-Life Manager 반영)
@@ -31,12 +30,20 @@ try:
 except:
     st.error("API 키가 설정되지 않았습니다. Streamlit Secrets를 확인해주세요.")
 
+
+
 def create_word_report(title, content):
     doc = Document()
     doc.add_heading(title, 0)
     
-    # 1. 마크다운의 **강조** 표시 제거
-    clean_content = re.sub(r'\*\*(.*?)\*\*', r'\1', content)
+    # 1. 마크다운 기호들을 정규표현식으로 깔끔하게 제거
+    # ###(제목), ---(구분선), <br>(줄바꿈), **(강조), `(코드) 등 제거
+    clean_content = content
+    clean_content = re.sub(r'###\s*', '', clean_content) # ### 제목 제거
+    clean_content = re.sub(r'---', '', clean_content)    # --- 구분선 제거
+    clean_content = re.sub(r'<br>', '\n', clean_content) # <br>을 줄바꿈으로
+    clean_content = re.sub(r'\*\*(.*?)\*\*', r'\1', clean_content) # **강조** 제거
+    clean_content = re.sub(r'`(.*?)`', r'\1', clean_content)       # `코드` 제거
     
     # 2. 내용을 줄 단위로 처리
     lines = clean_content.split('\n')
@@ -44,16 +51,16 @@ def create_word_report(title, content):
     
     for line in lines:
         line = line.strip()
-        # 마크다운 표 형식 감지 ( | 로 시작하고 끝남 )
+        if not line: continue # 빈 줄 건너뜀
+        
+        # 표 형식 감지
         if line.startswith('|') and line.endswith('|'):
-            # 표 내용 추출
             row = [cell.strip() for cell in line.split('|') if cell.strip()]
-            if row and not row[0].startswith('---'): # 헤더 구분선 제외
+            if row and not any('---' in cell for cell in row): # 헤더 구분선 제외
                 table_data.append(row)
         else:
-            # 표가 아닌 일반 문단 처리
+            # 표 생성 (이전 데이터가 쌓여있다면)
             if table_data:
-                # 쌓여있던 표 생성
                 table = doc.add_table(rows=len(table_data), cols=len(table_data[0]))
                 table.style = 'Table Grid'
                 for i, row_data in enumerate(table_data):
@@ -61,13 +68,14 @@ def create_word_report(title, content):
                         table.cell(i, j).text = cell_text
                 table_data = []
             
-            if line:
-                doc.add_paragraph(line)
+            # 일반 문단 추가
+            doc.add_paragraph(line)
                 
-    # 문서 저장
-    bio = io.BytesIO()
-    doc.save(bio)
-    return bio.getvalue()
+    return_bio = io.BytesIO()
+    doc.save(return_bio)
+    return return_bio.getvalue()
+
+
 
 # ----------------------------------------------------------------------
 # 3. 날짜 및 D-Day 계산 로직 (KST 기준)
@@ -232,9 +240,7 @@ with tab1:
         너는 직장인의 효율적인 시간 관리를 돕는 스마트 라이프 코치야.
         오늘 계획한 시간 배분(수면 {sleep_h}시간, 업무 {work_h}시간, 자기계발 {study_h}시간, 일상/휴식 {rest_h:.1f}시간)을 바탕으로 하루의 밸런스를 분석해 줘.
         무조건 열심히 하라는 압박보다는, 일과 휴식의 조화를 통해 '지속 가능한 루틴'을 만들 수 있도록 현실적이고 따뜻한 피드백을 제공하는 것이 핵심이야.
-        *중요: 
-        1. 보고서 내용을 작성할 때 마크다운 표 형식(| 헤더 | 헤더 | \n | --- | --- | \n | 내용 | 내용 |)을 적극적으로 사용해줘.
-        2. 만약 사용자가 '보고서', '리포트' 등을 만들어 달라고 요청하면, 내용을 요약해주고 마지막에 반드시 '[리포트생성]'이라는 단어를 포함해줘.*
+        *중요: 만약 사용자가 '보고서', '리포트' 등을 만들어 달라고 요청하면, 내용을 요약해주고 마지막에 반드시 '[리포트생성]'이라는 단어를 포함해줘.*
         """
         greeting_1 = """안녕하세요 안태경 님! 오늘 계획하신 타임블록을 확인했습니다. 일과 휴식의 밸런스가 잘 맞는지, 지속 가능한 루틴을 위한 피드백을 받아보시겠어요?
         (💡 꿀팁: '보고서 만들어줘')"""
@@ -396,9 +402,7 @@ with tab2:
         너는 직장인의 멘탈 케어와 성취도를 함께 고민해 주는 다정한 파트너야.
         오늘의 감정 흐름(아침 {cond_morning}/100, 점심 {cond_afternoon}/100, 저녁 {cond_evening}/100)과 하루 성취도({achievement_today}%) 데이터를 바탕으로 오늘 하루를 객관적이면서도 따뜻하게 리뷰해 줘.
         무리하지 않고 내일 더 나은 컨디션을 유지할 수 있는 실질적인 마인드 케어 팁을 2~3문장으로 제안해 줘.
-        *중요: 
-        1. 보고서 내용을 작성할 때 마크다운 표 형식(| 헤더 | 헤더 | \n | --- | --- | \n | 내용 | 내용 |)을 적극적으로 사용해줘.
-        2. 만약 사용자가 '보고서', '리포트' 등을 만들어 달라고 요청하면, 내용을 요약해주고 마지막에 반드시 '[리포트생성]'이라는 단어를 포함해줘.*
+        *중요: 만약 사용자가 '보고서', '리포트' 등을 만들어 달라고 요청하면, 내용을 요약해주고 마지막에 반드시 '[리포트생성]'이라는 단어를 포함해줘.*
         """
         
         greeting_2 = """오늘 하루의 감정 흐름과 성취도를 모두 기록해 주셨군요! 데이터를 바탕으로 오늘 하루를 객관적으로 리뷰하고, 내일을 위한 마인드 케어 팁을 확인해 볼까요?
@@ -565,9 +569,7 @@ with tab3:
         너는 사회초년생의 자산 형성을 돕는 전문 재무 컨설턴트야.
         세후 실수령액 375만 원을 기준으로, 현재 설정된 고정 지출({total_fixed}원), 투자액({amt_save}원), 남은 생활비({amt_flex}원)의 비율을 분석해 줘.
         무리한 절약을 강요하거나 비난하지 말고, 현재의 예산 분배가 장기적으로 안정적인지 객관적으로 진단한 뒤 실용적인 자산 관리 전략을 제안해 줘.
-        *중요: 
-        1. 보고서 내용을 작성할 때 마크다운 표 형식(| 헤더 | 헤더 | \n | --- | --- | \n | 내용 | 내용 |)을 적극적으로 사용해줘.
-        2. 만약 사용자가 '보고서', '리포트' 등을 만들어 달라고 요청하면, 내용을 요약해주고 마지막에 반드시 '[리포트생성]'이라는 단어를 포함해줘.*
+        *중요: 만약 사용자가 '보고서', '리포트' 등을 만들어 달라고 요청하면, 내용을 요약해주고 마지막에 반드시 '[리포트생성]'이라는 단어를 포함해줘.*
         """
         greeting_3 = """첫 월급의 설렘을 넘어, 본격적인 자산 관리를 시작할 때입니다. 현재 설정하신 예산 분배와 고정 지출 내역을 바탕으로 안정적인 재무 포트폴리오를 점검해 드릴까요?
         (💡 꿀팁: '보고서 만들어줘')"""
@@ -775,9 +777,7 @@ with tab4:
         너는 데이터 기반으로 소비 습관을 교정해 주는 스마트 소비 분석가야.
         {selected_month}에 가장 지출이 컸던 '{max_expense}' 카테고리를 중심으로 지출 패턴을 분석해 줘. (만약 '지출 없음'이라면 예산 계획을 세워줘)
         비난조의 팩트 폭격은 배제하고, 왜 해당 지출이 늘었는지 객관적으로 진단하게 만든 뒤 다음 달 예산 방어를 위한 현명하고 실용적인 전략을 제안해 줘.
-        *중요: 
-        1. 보고서 내용을 작성할 때 마크다운 표 형식(| 헤더 | 헤더 | \n | --- | --- | \n | 내용 | 내용 |)을 적극적으로 사용해줘.
-        2. 만약 사용자가 '보고서', '리포트' 등을 만들어 달라고 요청하면, 내용을 요약해주고 마지막에 반드시 '[리포트생성]'이라는 단어를 포함해줘.*
+        *중요: 만약 사용자가 '보고서', '리포트' 등을 만들어 달라고 요청하면, 내용을 요약해주고 마지막에 반드시 '[리포트생성]'이라는 단어를 포함해줘.*
         """
         
         chat_key = f"messages_4_{selected_month}"
