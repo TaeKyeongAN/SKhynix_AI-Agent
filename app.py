@@ -13,7 +13,7 @@ import time
 # ----------------------------------------------------------------------
 st.set_page_config(
     page_title="Hy-Life Manager | 직장인 라이프 매니저", 
-    page_icon="🚀", 
+    page_icon="🌱", 
     layout="wide"
 )
 
@@ -60,8 +60,6 @@ pay_str = f"D-{d_day_pay}" if d_day_pay > 0 else "D-Day (월급날! 💸)"
 # 4. 사이드바 구성 (Company, 성장 로그 및 Quick Links 추가)
 # ----------------------------------------------------------------------
 with st.sidebar:
-    # st.header("🏢 Hy-Life Manager")
-    # st.markdown("---")
     st.markdown("### 👤 Profile\n**Name:** 안태경\n\n**Company:** SK하이닉스\n\n**Team:** 양산기술")
     st.markdown("---")
     st.markdown("### ⏳ D-Day\n")
@@ -74,13 +72,13 @@ with st.sidebar:
 # ----------------------------------------------------------------------
 # 5. 메인 화면 로직 (탭 기반 1기능-1채팅 레이아웃)
 # ----------------------------------------------------------------------
-st.title("🚀 Hy-Life Manager: 내 손안의 AI 라이프 매니저")
+st.title("🌱 Hy-Life Manager")
 
 # 기능별로 4개의 탭 생성
 tab1, tab2, tab3, tab4 = st.tabs([
-    "⏱️ 24시간 타임블록 설계", 
-    "🧠 컨디션-성취도 분석", 
-    "📈 월급 시뮬레이터", 
+    "🧩 24시간 타임블록 설계", 
+    "💓 컨디션-성취도 분석", 
+    "🧮 월급 시뮬레이터", 
     "💸 소비 패턴 분석"
 ])
 
@@ -91,13 +89,13 @@ with tab1:
     col_vis1, col_chat1 = st.columns([6, 4])
     
     with col_vis1:
-        st.subheader("📊 24시간 타임블록 설계")
+        st.subheader("🧩 24시간 타임블록 설계")
         color_map = {'수면': '#3498db', '업무': '#e74c3c', '자기계발': '#f1c40f', '일상/휴식': '#2ecc71'}
         col_left, col_right = st.columns(2)
         
         # [왼쪽: 통계 분석]
         with col_left:
-            st.markdown("#### 📉 통계 분석")
+            st.markdown("#### 🗂️ 통계 분석")
             period = st.selectbox("기간 단위", ["요일별", "월별"], key="stat_period")
             if period == "요일별":
                 options_display = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
@@ -135,7 +133,7 @@ with tab1:
         with col_right:
             st.markdown("#### 📅 오늘의 계획")
             weekday_kr = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"][today.weekday()]
-            st.info(f"📅 **현재 날짜:** {today.strftime('%Y년 %m월 %d일')} ({weekday_kr})")
+            st.info(f"**현재 날짜:** {today.strftime('%Y년 %m월 %d일')} ({weekday_kr})")
             
             c1, c2, c3 = st.columns(3)
             with c1: sleep_h = st.slider("수면", 0.0, 24.0, 7.0, 0.5, key="sl1")
@@ -155,7 +153,7 @@ with tab1:
         
         # [로직 기반 패턴 비교 분석 영역]
         st.markdown("---")
-        st.markdown("#### 📊 패턴 비교 분석")
+        st.markdown("#### 🔍 패턴 비교 분석")
         
         if st.button("✨ 평균 데이터 vs 오늘 계획 비교하기"):
             avg_sleep, avg_work, avg_study, avg_rest = data_values
@@ -221,7 +219,7 @@ with tab2:
     col_vis2, col_chat2 = st.columns([6, 4])
     
     with col_vis2:
-        st.subheader("🧠 컨디션-성취도 상관관계 분석")
+        st.subheader("💓 컨디션-성취도 분석")
         
         st.markdown("#### 📝 오늘의 기록")
         
@@ -362,7 +360,7 @@ with tab3:
     col_vis3, col_chat3 = st.columns([6, 4])
     
     with col_vis3:
-        st.markdown("### 📈 월급 시뮬레이터")
+        st.markdown("### 🧮 월급 시뮬레이터")
         st.info("ℹ️ 하단 시뮬레이션은 예상 월 실수령액 **3,750,000원**을 기준으로 계산됩니다.")
         
         net_salary = 3750000 
@@ -382,7 +380,7 @@ with tab3:
             amt_save = st.number_input("💰 저축/투자 금액 (원)", min_value=0, max_value=net_salary, value=1500000, step=100000, key="num_save_3")
         with c2:
             rate_options = [round(x * 0.5, 1) for x in range(-40, 41)]
-            ret_rate = st.select_slider("📊 수익률 시뮬레이션", options=rate_options, value=4.0, key="slide_rate_3")
+            ret_rate = st.select_slider("📈 수익률 시뮬레이션", options=rate_options, value=4.0, key="slide_rate_3")
         
         amt_flex = net_salary - total_fixed - amt_save
         
@@ -394,7 +392,7 @@ with tab3:
         if amt_flex < 0:
             st.error("⚠️ 설정한 예산이 월급을 초과했습니다!")
         
-        tab_basic, tab_bonus = st.tabs(["📊 5개년 자산 로드맵", "🚀 성과급 시뮬레이션 (체험판)"])
+        tab_basic, tab_bonus = st.tabs(["🗺️ 5개년 자산 로드맵", "🪙 성과급 시뮬레이션 (체험판)"])
         
         def format_kr_won(val):
             sign = "-" if val < 0 else ""
@@ -425,7 +423,7 @@ with tab3:
             df_melt["금액_텍스트"] = df_melt["금액"].apply(format_kr_won)
             
             fig_g = px.bar(df_melt, x="년차", y=df_melt["금액"]/10000, color="구분",
-                           title=f"📈 연 기대 수익률 {ret_rate}% 반영 5개년 자산 로드맵",
+                           title=f"연 기대 수익률 {ret_rate}% 반영 5개년 자산 로드맵",
                            barmode="relative", text="금액_텍스트",
                            color_discrete_map={"원금": "#7f8c8d", "손익": ("#e74c3c" if ret_rate > 0 else "#3498db")})
             fig_g.update_traces(textposition='auto', insidetextanchor='middle')
@@ -463,7 +461,7 @@ with tab3:
             df_b["금액_텍스트"] = df_b["금액"].apply(format_kr_won)
             
             fig_b = px.bar(df_b, x="년차", y=df_b["금액"]/10000, color="구분",
-                           title=f"🚀 예상 성과급 반영 5개년 자산 로드맵",
+                           title=f"예상 성과급 반영 5개년 자산 로드맵",
                            barmode="relative", text="금액_텍스트",
                            color_discrete_map={"원금": "#7f8c8d", "성과급": "#ffcc99", "손익": ("#e74c3c" if ret_rate > 0 else "#3498db")})
             fig_b.update_traces(textposition='auto', insidetextanchor='middle')
