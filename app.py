@@ -542,7 +542,7 @@ with tab4:
         
         c1, c2 = st.columns(2)
         with c1:
-            st.markdown(f"<p style='font-size:14px; font-weight:bold; margin-bottom:0;'>📅 연간 총 지출 추이</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='font-size:14px; font-weight:bold; margin-bottom:0;'>연간 총 지출 추이</p>", unsafe_allow_html=True)
             
             if not df_trend_filtered.empty:
                 colors = ["#e74c3c" if m == selected_month else "#3498db" for m in df_trend_filtered["월"]]
@@ -557,7 +557,7 @@ with tab4:
                 st.info("데이터가 집계된 달이 없습니다.")
             
         with c2:
-            st.markdown(f"<p style='font-size:14px; font-weight:bold; margin-bottom:0;'>🥧 {selected_month} 카테고리 분포</p>", unsafe_allow_html=True)
+            st.markdown(f"<p style='font-size:14px; font-weight:bold; margin-bottom:0;'>{selected_month} 카테고리 분포</p>", unsafe_allow_html=True)
             
             current_total = edited_df["금액"].sum()
             if current_total > 0:
